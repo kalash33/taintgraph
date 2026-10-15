@@ -1,181 +1,221 @@
-# Upstream
+<p align="center">
+  <img src="docs/assets/logo.svg" width="72" alt="" />
+</p>
 
-**Find out how a software supply-chain compromise reaches your app, and which accounts could poison it next.**
+<h1 align="center">Taintgraph</h1>
 
-Give Upstream a lockfile (npm, pnpm, yarn, bun, uv, poetry, pip) or an AI tool's MCP config. It builds a FalkorDB graph of every installed version, who can publish it, which advisories touch it and how releases changed, then:
+<p align="center">
+  <b>See how a supply-chain attack reaches your app, and who could poison it next.</b><br/>
+  A FalkorDB graph agent for npm and PyPI lockfiles and AI-tool MCP configs.
+</p>
 
-- traces the exact route from your project to each malicious or vulnerable version, through *your* dependency edges only
-- ranks the maintainer accounts that could poison the largest share of your tree (PageRank) and simulates a Shai-Hulud style worm spreading from one of them
-- flags tampered releases: removed from the registry, new publisher plus a new install script, dropped provenance, typosquats, unpinned MCP servers
-- lets an **Analyst agent** answer questions from the graph with fixed read-only Cypher tools, showing each step, the query it ran and the evidence subgraph
-- **remembers**: human verdicts, past investigations and learned triage rules live in the graph and change the next scan
-- hands work between agents (**Scout → Analyst → Reporter**) through Task nodes, and a **Sentinel** retro-hunts new advisories against every version any project ever installed
+<p align="center">
+  <a href="https://github.com/kalash33/taintgraph/actions/workflows/ci.yml"><img src="https://github.com/kalash33/taintgraph/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="benchmark/RESULTS.md"><img src="https://img.shields.io/badge/real%20incidents-19%2F19%20detected-2ea44f" alt="19 of 19 real incidents detected" /></a>
+  <a href="benchmark/RESULTS.md"><img src="https://img.shields.io/badge/false%20alarms-0%2F10-2ea44f" alt="0 false alarms" /></a>
+  <img src="https://img.shields.io/badge/graph-FalkorDB-ff4f2d" alt="FalkorDB" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT" /></a>
+</p>
 
-Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB, Oct 15–18 2026).
-Tracks: **01 Agents That Act on Connected Data** and **02 Agent Memory and Coordination**.
+<p align="center">
+  <img src="docs/screenshots/overview.png" alt="A real VS Code extension's lockfile: compromised, with red routes from six malicious packages into the app" width="900" />
+</p>
 
-## Try it in two minutes
+---
 
-```bash
-git clone https://github.com/kalash33/upstream && cd upstream
-cp .env.example .env          # optional: add an OpenRouter or NVIDIA key for the LLM analyst
-docker compose up --build     # FalkorDB + Upstream
-open http://localhost:8787    # click a sample, e.g. "chalk and debug, September 2025"
-```
+In September 2025, a phished maintainer pushed malware into `chalk`, `debug` and 16 other npm packages with billions of weekly downloads. A week later the Shai-Hulud worm began stealing npm tokens and republishing every package its victims maintained. In 2026, the same playbook hit TanStack and LiteLLM.
 
-No API key is needed. Without one, a built-in investigator answers with the same tools.
+When that happens, a list of bad versions isn't enough. You need to know:
 
-Without Docker for the app (Node 24, pnpm 10):
+- **Am I hit, and how?** Which of my 400 dependencies pulls the bad version in, and through which chain?
+- **Who else could do this to me?** Which single maintainer account can publish the biggest share of my tree?
+- **What if it spreads?** If that account is phished, what does a worm reach in one wave, two, four?
+- **Is my AI tooling exposed?** The MCP servers my coding assistant starts with `npx` every morning are a supply chain too.
 
-```bash
-docker compose up -d falkordb
-pnpm install && pnpm build
-pnpm start                     # http://localhost:8787
-pnpm test                      # 28 tests; integration tests run against the local FalkorDB
-```
+Those are graph questions. Taintgraph loads the lockfile into FalkorDB: every installed version, who can publish it, who actually did, how each release changed from the last one, and every advisory that touches it. Then a set of agents answers them, remembers what you decided, and keeps watching.
 
-The samples are real incidents rebuilt as lockfiles:
+## What it does
 
-| Sample | What Upstream finds |
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Traces the route.** Each finding shows the exact chain from your project to the bad version, using only the dependency edges your own lockfile declared.
+
+<img src="docs/screenshots/finding.png" alt="A finding: chalk@5.6.1 is known malware, reached through lint-staged" />
+
+</td>
+<td width="50%" valign="top">
+
+**Ranks who can poison you, and simulates the worm.** Accounts are weighted by the PageRank of everything they can publish. Pick one and watch a Shai-Hulud style worm spread wave by wave.
+
+<img src="docs/screenshots/worm.png" alt="Worm simulation from qix: 66% of packages poisoned in four waves" />
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**Answers questions, and shows its work.** An Analyst agent uses fixed, read-only Cypher tools. Every step shows the tool, the query and what came back, and the evidence subgraph is drawn. Answers that name anything the graph didn't return are rebuilt from the graph.
+
+<img src="docs/screenshots/ask.png" alt="The Analyst traces litellm through dspy and names who could publish a poisoned dspy" />
+
+</td>
+<td valign="top">
+
+**Remembers.** Your verdicts, past investigations and learned triage rules live in the graph and change the next scan. It never skips malware automatically. Agents hand work to each other through Task nodes.
+
+<img src="docs/screenshots/memory.png" alt="Memory: past investigations, a learned rule, verdicts and agent handoffs" />
+
+</td>
+</tr>
+</table>
+
+It also flags tampered releases that no advisory covers yet:
+
+| Signal | When |
 |---|---|
-| chalk and debug, Sept 2025 (a real public lockfile) | 6 versions from the phished-maintainer campaign, all under `lint-staged`, each with its route |
-| debug 4.4.2 in another extension | the same campaign in a second project. A verdict given in the first project doesn't hide it here |
-| TanStack, May 2026 (pnpm) | `@tanstack/react-router` from the hijacked trusted-publishing release |
-| LiteLLM, March 2026 (uv.lock) | `litellm@1.82.8` arriving through `dspy` |
-| Typosquats | `lodahs` (malware, now an npm security placeholder) and `expres` |
-| Claude Code MCP setup | `mcp-remote` with a command-injection advisory, unpinned `npx`/`uvx` servers |
+| Removed from the registry | npm or PyPI no longer serves the version you pinned (registries delete malware), or npm replaced it with a security placeholder |
+| Account takeover | the publisher changed **and** an install script appeared |
+| Risky install script | the install hook downloads and executes, decodes base64, or reads credentials |
+| Dropped provenance | the previous release had a build attestation and this one doesn't |
+| Typosquat | one edit away from a top package, with a tiny fraction of its downloads |
+| Unpinned MCP server | an AI tool launches `npx pkg` or `uvx pkg` with no version, so it runs whatever was published last |
 
-## Graph model
+## Tested on real incidents
 
-One graph per workspace (`up:org:<name>`, picked with the `x-upstream-org` header), so tenants are isolated by the graph boundary rather than by a WHERE clause.
+`pnpm bench` scans the exact versions shipped in 19 real supply-chain incidents (2018 to 2026), plus 10 clean controls that include the releases just before and just after a compromise. [Full results](benchmark/RESULTS.md).
 
-```
-(:Project)-[:DEPENDS_ON {dev}]->(:Version)                      direct dependencies
-(:Version)-[:DEPENDS_ON {projects:[ids]}]->(:Version)           resolved tree; each edge lists the projects that declared it
-(:Version)-[:OF]->(:Package {typosquat_of, downloads, dependents})
-(:Version)-[:PRECEDES]->(:Version)                              previous release -> this one
-(:Account {kind: user|org|workflow})-[:MAINTAINS]->(:Package)
-(:Account)-[:PUBLISHED]->(:Version)                             who actually pushed the release (or the CI identity)
-(:Advisory {kind: malware|vuln})-[:AFFECTS {explicit, fixed, first_seen}]->(:Version)
-(:Scan)-[:OF_PROJECT]->(:Project),  (:Scan)-[:SAW {dev}]->(:Version)   point-in-time snapshot
-(:McpServer {pinned, command})-[:DECLARED_IN]->(:Project),  (:McpServer)-[:RUNS]->(:Version)
+**19 of 19 incidents detected, 0 false alarms on 10 clean controls.**
 
-Memory and coordination
-(:Finding {signal, severity, status, path})-[:ABOUT]->(:Version), -[:IN_PROJECT]->(:Project), -[:EVIDENCE]->(:Advisory)
-(:Investigation)-[:ABOUT_PROJECT]->(:Project), -[:HAS_STEP]->(:Step)-[:NEXT]->(:Step), -[:CONCLUDED]->(:Finding)
-(:Rule {when, then, status, confidence})-[:LEARNED_FROM]->(:Finding)
-(:Task {type, for_agent, status, claimed_by})-[:FOR_PROJECT]->(:Project)
-```
-
-Version properties include `published_at`, `has_install_script`, `install_scripts`, `has_provenance`, `removed` and `rank` (PageRank). Keys look like `npm/chalk@5.6.1`, `pypi/litellm@1.82.8`, `npm-user/qix` and `pypi-org/<org>`.
-
-Why a graph: the question is always a path. *Project → lint-staged → listr2 → log-update → strip-ansi → ansi-regex ← MAL advisory ← published by a phished account → which maintains 40 other packages in my tree.* Edges carry the per-project scope, so two projects that share `chalk@5.6.1` never borrow each other's routes.
-
-## Cypher
-
-All 65 queries are plain files in [`queries/`](queries). Nothing is generated at runtime. Some highlights:
-
-| Query | What it does |
-|---|---|
-| [`exposure_paths`](queries/exposure_paths.cypher) | `shortestPath` from the project to every advisory-hit version, plus whether the route uses only this project's edges |
-| [`version_routes`](queries/version_routes.cypher) | `allShortestPaths` to one version, filtered to the project's edges |
-| [`algo_pagerank`](queries/algo_pagerank.cypher) / [`algo_chokepoints`](queries/algo_chokepoints.cypher) | `algo.pageRank` over DEPENDS_ON for account weights; `algo.betweenness` for chokepoints |
-| [`accounts_reach`](queries/accounts_reach.cypher) | `CALL { … UNION … }` of maintainers and publishers: everything one login can publish into this tree |
-| [`worm_wave`](queries/worm_wave.cypher) | one worm wave: poisoned versions, then the maintainers of their dependents |
-| [`release_facts`](queries/release_facts.cypher) | publisher, install-script and provenance changes against the previous release |
-| [`point_in_time`](queries/point_in_time.cypher) | "were we exposed on 2025-09-08, and was the advisory public yet?" |
-| [`advisories_search`](queries/advisories_search.cypher) | full-text index over advisory summaries |
-| [`investigation_step`](queries/investigation_step.cypher) | writes each agent step and links it to the previous one with NEXT |
-| [`task_claim`](queries/task_claim.cypher) | atomic task claim between agents |
-
-Things learned about FalkorDB 6 along the way, and handled in the queries: `shortestPath` is only allowed in WITH/RETURN. Repeating an anonymous `(:Scan {id})` pattern can return nothing, so it is bound once. After an UNWIND, a WHERE on an OPTIONAL MATCH drops rows, so those filters are CASE expressions.
-
-## The agents
-
-| Agent | Job | Code |
+| Incident | Version | Detected as |
 |---|---|---|
-| Scout | parse → OSV.dev, npm, PyPI, deps.dev, ecosyste.ms → write the graph → PageRank → triage → leave an `analyze` task | [`ingest/scout.ts`](server/src/ingest/scout.ts) |
-| Analyst | claim the task or answer a person; memory first, then tools | [`agents/analyst.ts`](server/src/agents/analyst.ts) |
-| Reporter | turn the graph and the Analyst's conclusion into an incident report | [`agents/reporter.ts`](server/src/agents/reporter.ts) |
-| Sentinel | re-check every observed version against OSV, link new advisories, re-triage, re-queue | [`agents/sentinel.ts`](server/src/agents/sentinel.ts) |
+| event-stream (2018) | `flatmap-stream@0.1.1` | malware |
+| ua-parser-js hijack (2021) | `ua-parser-js@0.7.29` | malware advisory (range) |
+| node-ipc protestware (2022) | `node-ipc@10.1.1` | malware advisory (range) |
+| @solana/web3.js key theft (2024) | `@solana/web3.js@1.95.6` | malware |
+| Ultralytics cryptominer (2024) | `ultralytics==8.3.41` | malware advisory (by its wording) |
+| s1ngularity, AI-CLI secret theft (2025) | `nx@21.5.0` | malware |
+| chalk / debug phishing (2025) | `chalk@5.6.1`, `debug@4.4.2` | malware |
+| Shai-Hulud worm (2025) | `@ctrl/tinycolor@4.1.1` | malware |
+| LiteLLM credential stealer (2026) | `litellm==1.82.8` | malware |
+| TanStack token hijack (2026) | `@tanstack/react-router@1.169.5` | malware |
+| …and 9 more | | |
 
-The Analyst follows the event guide on agents that reason over a graph:
+Every case is also a test: `pnpm test` fails if any incident is missed or any control is flagged.
 
-- **Fixed tools, never text-to-Cypher.** Nine parameterized queries ([`agents/tools.ts`](server/src/agents/tools.ts)) all run through `GRAPH.RO_QUERY`, so the agent cannot write.
-- **Names are resolved against the graph first.** A misspelt package or login returns `unknown_name` with "did you mean" suggestions from edit distance.
-- **Typed outcomes:** `answered`, `from_memory`, `not_in_graph`, `unknown_name`. The UI shows which kind each answer is.
-- **The answer is checked.** Every `name@version` or backticked name in the model's answer must appear in what the tools returned. If one doesn't, the answer is rebuilt from the tool results and marked as rebuilt.
-- **Every step is persisted** (tool, input, Cypher, outcome, evidence subgraph) as `Step` nodes, and the UI draws the evidence.
+## Quick start
 
-### Memory
-
-- **Semantic.** A human verdict (real threat / not a threat / risk accepted) is stored on the Finding. When the same version shows up in another project, the verdict is recalled as context. Compromise signals (malware, possible malware, removed from the registry) are **never skipped automatically**: the finding stays open with a note.
-- **Procedural.** After two matching verdicts for a signal, a Rule is *proposed* (e.g. typosquat → skip). It acts only after a person activates it, and never on compromise signals.
-- **Episodic.** Investigations and their conclusions are recalled. Asking the same question again after the same scan is answered `from_memory` with no new queries.
-
-## LLM configuration
-
-The Analyst works with any OpenAI-compatible endpoint, or Anthropic. Set one of these in `.env`:
+You need Docker. No API key is required.
 
 ```bash
-OPENROUTER_API_KEY=...        # default model openai/gpt-oss-120b
-NVIDIA_API_KEY=...            # build.nvidia.com, default model openai/gpt-oss-120b
-ANTHROPIC_API_KEY=...
-LLM_MODEL=...                 # override the model
-LLM_PROVIDER=openai LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=qwen3:32b   # Ollama, vLLM, LM Studio…
+git clone https://github.com/kalash33/taintgraph && cd taintgraph
+cp .env.example .env              # optional: add an NVIDIA or OpenRouter key
+docker compose up --build
 ```
 
-The client retries on 429 (honouring Retry-After), 5xx and network errors, and on 200 responses that carry an error body. It accepts tool arguments as strings, objects or broken JSON, fills in missing call ids, strips `<think>` blocks, and passes OpenRouter `reasoning_details` back unchanged. If the model fails mid-investigation, the built-in investigator finishes from the graph. Automatic handoff investigations use the built-in investigator unless `UPSTREAM_AUTO_LLM=1`, so scans don't spend credits.
+Open http://localhost:8787 and click **chalk and debug, September 2025**: a real public lockfile caught by that attack.
 
-## CLI and CI
+<details>
+<summary>Without Docker for the app (Node 24, pnpm 10)</summary>
 
 ```bash
-pnpm scan path/to/package-lock.json
-pnpm scan https://github.com/owner/repo --fail-on malware --sarif upstream.sarif
-pnpm scan chalk-2025 --ask "What if qix is phished?"
+docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
+pnpm install
+pnpm build && pnpm start          # http://localhost:8787
+pnpm test                         # 59 tests: unit, integration, real incidents
+```
+</details>
+
+### Turn on the LLM Analyst
+
+Without a key, a built-in investigator answers with the same tools. With one, answers read naturally and are still checked against the graph.
+
+```bash
+NVIDIA_API_KEY=nvapi-...          # build.nvidia.com; default model nvidia/nemotron-3-super-120b-a12b
+OPENROUTER_API_KEY=sk-or-...      # default model openai/gpt-oss-120b
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_PROVIDER=openai LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=qwen3:32b   # Ollama, vLLM…
 ```
 
-Exit codes: `0` ok, `1` an open finding at or above `--fail-on` (malware | critical | high | medium), `2` the scan couldn't run. SARIF 2.1.0 output uploads to GitHub code scanning.
+## Use it where you work
 
-## MCP server
+```bash
+pnpm scan package-lock.json                                  # any lockfile or MCP config
+pnpm scan https://github.com/owner/repo                      # a public repository
+pnpm scan uv.lock --fail-on malware --sarif taintgraph.sarif   # CI gate + GitHub code scanning
+pnpm scan chalk-2025 --ask "What if qix is phished?"         # ask the Analyst from the terminal
+```
 
-A coding agent can use Upstream before touching a lockfile:
+And as an **MCP server**, so a coding agent can check a dependency before adding it:
 
 ```json
-{ "mcpServers": { "upstream": { "command": "pnpm", "args": ["-C", "/path/to/upstream/server", "mcp"], "env": { "UPSTREAM_ORG": "demo" } } } }
+{ "mcpServers": { "taintgraph": { "command": "pnpm", "args": ["-C", "/path/to/taintgraph/server", "mcp"] } } }
 ```
 
-Tools: `scan`, `list_projects`, `ask`, `explain_package`, `trace_exposures`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints`, `record_verdict`. An agent can confirm a malware finding but can't dismiss or accept one. Only a person can, in the web app.
+Supported inputs: `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock` (v1 and Berry), `bun.lock`, `uv.lock`, `poetry.lock`, pinned `requirements.txt`, and MCP configs from Claude Code, Claude Desktop, Cursor and VS Code.
 
-## API
+## How it works
 
-`GET /api/health`, `/api/samples`, `/api/projects`, `/api/projects/:id`, `/api/projects/:id/graph`, `/api/projects/:id/accounts`, `/api/projects/:id/report`, `/api/investigations/:id`, `/api/memory` ·
-`POST /api/scan` (SSE), `/api/projects/:id/ask` (SSE), `/api/projects/:id/simulate`, `/api/findings/:id/verdict`, `/api/rules/:id/activate`, `/api/sentinel`.
-The full contract is in [`server/src/types.ts`](server/src/types.ts). Workspace: header `x-upstream-org`.
-
-## Security notes
-
-- Agent tools are read-only (`GRAPH.RO_QUERY`) and parameterized; user text is never spliced into Cypher. Full-text search input is reduced to plain words.
-- Text written by package authors (install scripts, advisory summaries) is treated as untrusted: control and bidi characters are stripped, it is length-limited, and the model is told it's data, not instructions.
-- FalkorDB is bound to 127.0.0.1 in `docker-compose.yml`. Put a password on it before exposing it anywhere.
-- Rate limits per IP; errors don't leak internals.
-
-## Layout
-
-```
-queries/         every Cypher query, one file each
-server/src/      ingest/ (parsers, feeds, heuristics, scout) · agents/ · analysis.ts · memory.ts · index.ts (API) · mcp.ts · cli.ts
-server/test/     parsers, heuristics, LLM adapter, integration (real FalkorDB)
-web/             Vite + React UI: dependency graph, findings, accounts, worm simulation, Ask with steps and evidence, memory
-fixtures/        sample lockfiles
+```mermaid
+flowchart LR
+  IN[Lockfile · MCP config · GitHub URL] --> S[Scout]
+  F[OSV.dev · npm · PyPI · deps.dev · ecosyste.ms] --> S
+  S -->|graph + findings| DB[(FalkorDB)]
+  S -->|Task: analyze| A[Analyst]
+  A -->|read-only tools| DB
+  A -->|Task: report| R[Reporter]
+  N[Sentinel] -->|new advisories → re-triage| DB
+  N -->|Task: analyze| A
+  DB --> UI[Web app · CLI · MCP · API]
 ```
 
-## How this was built
+- **Scout** parses the input, pulls advisories and registry history, writes the graph, runs PageRank and triages.
+- **Analyst** answers questions with ten fixed tools over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
+- **Reporter** writes an incident report you can forward.
+- **Sentinel** re-checks every version any project ever installed against OSV, so an advisory published today finds the app that installed the package last month.
 
-Built during the hackathon window with an AI coding assistant (Claude Code). The idea, graph-model sketches and research were prepared before the event, as the rules allow. All code in this repository was written during the event; the commit history shows it. See [`docs/PLAN.md`](docs/PLAN.md).
+### The graph
 
-Data: [OSV.dev](https://osv.dev), the npm registry, PyPI, [deps.dev](https://deps.dev), [ecosyste.ms](https://ecosyste.ms). Graph: [FalkorDB](https://falkordb.com).
+```
+(:Project)-[:DEPENDS_ON]->(:Version)-[:DEPENDS_ON {projects}]->(:Version)-[:OF]->(:Package)
+(:Account)-[:MAINTAINS]->(:Package)     (:Account)-[:PUBLISHED]->(:Version)
+(:Advisory)-[:AFFECTS {explicit, fixed}]->(:Version)     (:Version)-[:PRECEDES]->(:Version)
+(:Scan)-[:SAW]->(:Version)     (:McpServer)-[:RUNS]->(:Version)
+memory: (:Finding) (:Investigation)-[:HAS_STEP]->(:Step) (:Rule)-[:LEARNED_FROM]->(:Finding) (:Task)
+```
+
+All 67 Cypher queries are plain files in [`queries/`](queries). They use `shortestPath`, `allShortestPaths`, variable-length paths, `algo.pageRank`, `algo.betweenness`, full-text search and `CALL {}` subqueries.
+
+## Documentation
+
+| | |
+|---|---|
+| [Architecture](docs/architecture.md) | components, scan flow, workspaces, code map |
+| [Graph model](docs/graph-model.md) | every node and relationship, the key queries, FalkorDB notes |
+| [Agents and memory](docs/agents.md) | the Analyst's tools and checks, memory, coordination, the Sentinel |
+| [Usage](docs/usage.md) | web app, CLI, GitHub Actions, MCP server, HTTP API, configuration |
+| [Benchmark](benchmark/RESULTS.md) | real incidents and controls, with results |
+| [Security](SECURITY.md) | how Taintgraph handles hostile package data, and how to run it safely |
+| [Contributing](CONTRIBUTING.md) | setup, checks, conventions |
+
+## More screenshots
+
+| AI tool supply chain (dark mode) | Phone |
+|---|---|
+| <img src="docs/screenshots/mcp-dark.png" alt="An MCP config: unpinned servers and a vulnerable mcp-remote" /> | <img src="docs/screenshots/mobile.png" alt="Project view on a phone" width="260" /> |
+
+## Graph Hacks 2026
+
+Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB), entered in:
+
+- **Track 01: Agents That Act on Connected Data.** The Analyst answers from multi-hop paths, account reach and worm spread; the Sentinel acts on new advisories.
+- **Track 02: Agent Memory and Coordination.** Verdicts, investigations and learned rules live in the graph and change future triage. Agents coordinate only through Task nodes.
+
+**AI disclosure.** Built during the event with an AI coding assistant (Claude Code). The idea and research were prepared before the event, as the rules allow; all code was written during it.
+
+Data: [OSV.dev](https://osv.dev), the npm registry, [PyPI](https://pypi.org), [deps.dev](https://deps.dev), [ecosyste.ms](https://ecosyste.ms). Graph: [FalkorDB](https://www.falkordb.com).
 
 ## License
 
-MIT
+[MIT](LICENSE)
