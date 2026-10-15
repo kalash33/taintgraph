@@ -136,7 +136,20 @@ function useFocusHeading(hash: string) {
       if (tries++ < 60) raf = window.requestAnimationFrame(attempt);
     };
     raf = window.requestAnimationFrame(attempt);
-    return () => window.cancelAnimationFrame(raf);
+    // Pages swap their loading heading for the real one; if focus fell to <body>, follow it.
+    const obs = new MutationObserver(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body) return;
+      document.getElementById("page-title")?.focus({ preventScroll: true });
+    });
+    const main = document.getElementById("main");
+    if (main) obs.observe(main, { childList: true, subtree: true });
+    const stop = window.setTimeout(() => obs.disconnect(), 5000);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      obs.disconnect();
+      window.clearTimeout(stop);
+    };
   }, [hash]);
 }
 
@@ -198,7 +211,7 @@ export default function App() {
 
   return (
     <>
-      <a className="skip-link" href="#/" onClick={skipToMain}>
+      <a className="skip-link" href="#main" onClick={skipToMain}>
         Skip to content
       </a>
       <header className="site-header">
