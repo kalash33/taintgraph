@@ -194,7 +194,8 @@ async function builtIn(ctx: Ctx, q: string, step: Step, all: () => ToolResult[])
   const phrase = q.match(/advisor(?:y|ies)\s+(?:about|mentioning|for|on)\s+["']?([^"'?]+)/i)?.[1];
   if (phrase) await add("search_advisories", { text: phrase });
   const general = /compromis|malware|malicious|safe|exposed|affected|reach|risk|wrong|status|summar|overview|fix|what should/.test(lower);
-  if (general || !results.length) {
+  // A question about a named package or account stays focused on it; the project-wide trace is for general questions.
+  if (!results.length || (general && !pkgs.length && !login)) {
     await add("trace_exposures");
     await add("project_overview");
   }

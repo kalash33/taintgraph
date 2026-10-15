@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { config } from "./config.ts";
-import { isValidOrg, read } from "./db.ts";
+import { close, isValidOrg, read } from "./db.ts";
 import { Q } from "./queries.ts";
 import { getProject, listProjects, summary } from "./analysis.ts";
 import { scan } from "./ingest/scout.ts";
@@ -110,5 +110,10 @@ server.registerTool(
   }),
 );
 
-await server.connect(new StdioServerTransport());
+const transport = new StdioServerTransport();
+// Exit when the client goes away; the open database connections would otherwise keep the process alive.
+const shutdown = () => void close().finally(() => process.exit(0));
+transport.onclose = shutdown;
+process.stdin.on("end", shutdown);
+await server.connect(transport);
 console.error(`[upstream mcp] workspace "${org}" ready`);
