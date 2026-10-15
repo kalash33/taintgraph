@@ -1,0 +1,7 @@
+packages:
+  - server
+  - web
+# A supply-chain tool should practice what it preaches: no package versions younger than 3 days.
+minimumReleaseAge: 4320
+onlyBuiltDependencies:
+  - esbuild

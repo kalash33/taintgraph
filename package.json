@@ -1,0 +1,12 @@
+{
+  "name": "upstream",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -C web build",
+    "start": "pnpm -C server start",
+    "scan": "pnpm -C server scan",
+    "test": "pnpm -C server test"
+  },
+  "packageManager": "pnpm@10.33.2"
+}

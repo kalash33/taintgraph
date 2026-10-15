@@ -1,0 +1,20 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:latest
+    # FalkorDB has no password by default, so it is only reachable from this machine.
+    ports: ["127.0.0.1:6380:6379", "127.0.0.1:3001:3000"]
+    environment:
+      REDIS_ARGS: "--appendonly yes"
+    volumes: [falkordb-data:/var/lib/falkordb/data]
+  app:
+    build: .
+    depends_on: [falkordb]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FALKORDB_URL: redis://falkordb:6379
+      PORT: 8787
+    ports: ["127.0.0.1:8787:8787"]
+volumes:
+  falkordb-data:
