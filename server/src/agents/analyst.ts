@@ -61,7 +61,7 @@ export async function investigate(org: string, projectId: string, question: stri
       at: Date.now(),
     };
     steps.push({ step: s, result });
-    await run(org, Q("investigation_step"), { investigationId: id, idx: s.index, tool, label: s.label, input: JSON.stringify(input), outcome: s.outcome, summary: s.summary, cypher: s.cypher, evidence: JSON.stringify(s.evidence) });
+    await run(org, Q("investigation_step"), { investigationId: id, idx: s.index, tool, label: s.label, input: JSON.stringify(input), outcome: s.outcome, summary: s.summary, queryText: s.cypher, evidence: JSON.stringify(s.evidence) });
     emit({ type: "step", step: s });
     return result;
   };

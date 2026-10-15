@@ -1,6 +1,6 @@
 MATCH (i:Investigation {id: $investigationId})
 CREATE (s:Step {idx: $idx, tool: $tool, label: $label, input: $input, outcome: $outcome, summary: $summary,
-                cypher: $cypher, evidence: $evidence, at: timestamp()})
+                cypher: $queryText, evidence: $evidence, at: timestamp()})
 CREATE (i)-[:HAS_STEP]->(s)
 WITH i, s
 OPTIONAL MATCH (i)-[:HAS_STEP]->(prev:Step)

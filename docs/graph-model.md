@@ -99,9 +99,10 @@ Indexes and constraints are created by [`server/src/schema.ts`](../server/src/sc
 
 ## FalkorDB notes
 
-Things we hit on FalkorDB 6 and how the queries deal with them:
+Tested on FalkorDB 4.22 (the `latest` image) and a 6.x build. Things we hit and how the queries deal with them:
 
 - `shortestPath` is only allowed in `WITH` or `RETURN`, so it is computed there and filtered afterwards.
 - Repeating the same anonymous pattern, e.g. `(:Scan {id: $scanId})` twice, can return nothing. Bind it once and reuse the variable.
 - After `UNWIND`, a `WHERE` on an `OPTIONAL MATCH` can drop every row. Those filters are `CASE` expressions after the match.
 - `algo.pageRank` fails on a graph with no matching edges, so the Scout checks for version-to-version edges first.
+- On 4.x, a query parameter named `cypher` breaks the `CYPHER name=value` header, so the step query uses `$queryText`.
