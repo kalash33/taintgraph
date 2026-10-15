@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { MemoryView, RuleView, TaskView } from "@api/types";
+import type { MemoryView, RuleView, SentinelResult, TaskView } from "@api/types";
 import { api, formatWhen, isoTime, shortKey, signalLabel, STATUS_LABEL, toApiError } from "../api";
 import { href } from "../App";
 import { Empty, ErrorState, Loading } from "./States";
@@ -59,6 +59,68 @@ function RuleRow({ rule, onActivated }: { rule: RuleView; onActivated: (id: stri
   );
 }
 
+/** The Sentinel: re-check every version this workspace ever installed against today's advisories. */
+function Sentinel({ onDone }: { onDone: () => void }) {
+  const [state, setState] = useState<{ status: "idle" | "running" } | { status: "done"; result: SentinelResult } | { status: "error"; message: string }>({ status: "idle" });
+  const run = async () => {
+    setState({ status: "running" });
+    try {
+      const result = await api.sentinel();
+      setState({ status: "done", result });
+      onDone();
+    } catch (e) {
+      setState({ status: "error", message: toApiError(e).message });
+    }
+  };
+  const byProject = state.status === "done" ? [...new Map(state.result.hits.map((h) => [h.projectId, h.projectName])).entries()] : [];
+  return (
+    <section aria-labelledby="sentinel-h" className="sentinel span-2">
+      <div className="sentinel-head">
+        <div>
+          <h2 id="sentinel-h">Sentinel</h2>
+          <p className="muted">
+            Re-checks every version any project here has installed against today's advisories. A malware advisory published this
+            morning finds the app that installed the package last month, re-opens it and hands it to the Analyst.
+          </p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={run} disabled={state.status === "running"}>
+          {state.status === "running" ? "Checking…" : "Check for new advisories"}
+        </button>
+      </div>
+      <div aria-live="polite">
+        {state.status === "error" && (
+          <p className="error-text" role="alert">
+            {state.message}
+          </p>
+        )}
+        {state.status === "done" &&
+          (state.result.newAdvisories === 0 ? (
+            <p className="sentinel-result">
+              Checked {state.result.checked} versions. No new advisories since the last scans.
+            </p>
+          ) : (
+            <div className="sentinel-result sentinel-hit">
+              <p>
+                <strong>
+                  {state.result.newAdvisories} new {state.result.newAdvisories === 1 ? "advisory" : "advisories"}
+                </strong>{" "}
+                for versions already installed, in {byProject.length} {byProject.length === 1 ? "project" : "projects"}. They were
+                re-triaged and handed to the Analyst.
+              </p>
+              <ul>
+                {state.result.hits.slice(0, 12).map((h) => (
+                  <li key={h.projectId + h.versionKey + h.advisoryId}>
+                    <a href={href.project(h.projectId)}>{h.projectName}</a> · <code>{shortKey(h.versionKey)}</code> · {h.advisoryId}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+      </div>
+    </section>
+  );
+}
+
 export default function Memory() {
   const [mem, setMem] = useState<MemoryView | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -87,6 +149,7 @@ export default function Memory() {
         <Loading label="Loading memory" />
       ) : (
         <div className="memory-grid">
+          <Sentinel onDone={load} />
           <section aria-labelledby="inv-h">
             <h2 id="inv-h">Past investigations</h2>
             {mem.investigations.length === 0 ? (

@@ -192,6 +192,13 @@ export type ScanEvent =
   | { type: "done"; projectId: string }
   | { type: "error"; message: string };
 
+/** Result of a Sentinel retro-hunt: new advisories for versions some project already installed. */
+export interface SentinelResult {
+  checked: number; // versions re-checked against OSV.dev
+  newAdvisories: number;
+  hits: { projectId: string; projectName: string; versionKey: string; advisoryId: string }[];
+}
+
 export type InvestigateEvent =
   | { type: "started"; investigationId: string; agent: string }
   | { type: "step"; step: StepView }
@@ -215,6 +222,6 @@ GET  /api/investigations/:id                  -> InvestigationView
 POST /api/findings/:id/verdict { verdict: "confirmed" | "dismissed" | "accepted", note? } -> { ok, proposedRule?: RuleView }
 GET  /api/memory                              -> MemoryView
 POST /api/rules/:id/activate                  -> { ok }
-POST /api/sentinel                            -> { checked, newAdvisories, hits: { projectId, versionKey, advisoryId }[] }
+POST /api/sentinel                            -> SentinelResult
 Errors: { error: string } with 4xx/5xx. 429 when rate limited.
 */

@@ -3,18 +3,13 @@ import { read, redis, run } from "../db.ts";
 import { Q } from "../queries.ts";
 import { getProject, projectTree, triage } from "../analysis.ts";
 import { classifyAdvisory, osvBatch, osvVuln } from "../ingest/feeds.ts";
-import type { Ecosystem } from "../types.ts";
+import type { Ecosystem, SentinelResult } from "../types.ts";
 import { createTask } from "./tasks.ts";
 
 // The Sentinel retro-hunts: it re-checks every version any project in the workspace has ever installed against
 // OSV.dev (bypassing the cache), links new advisories into the graph, and re-triages the projects they reach.
 // A malware advisory published today finds the app that installed the package last month.
 
-export interface SentinelResult {
-  checked: number;
-  newAdvisories: number;
-  hits: { projectId: string; versionKey: string; advisoryId: string }[];
-}
 
 const running = new Set<string>();
 
@@ -61,7 +56,7 @@ async function hunt(org: string): Promise<SentinelResult> {
   const touched = new Set<string>();
   for (const row of rows)
     for (const p of await read(org, Q("projects_with_version"), { key: row.version })) {
-      hits.push({ projectId: p.id, versionKey: row.version, advisoryId: row.id });
+      hits.push({ projectId: p.id, projectName: p.name, versionKey: row.version, advisoryId: row.id });
       touched.add(p.id);
     }
   // Re-triage each affected project on its latest scan and hand it to the Analyst again.

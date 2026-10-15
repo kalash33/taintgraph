@@ -12,6 +12,7 @@ import type {
   RuleView,
   Sample,
   ScanEvent,
+  SentinelResult,
   Severity,
   SignalId,
   WormResult,
@@ -203,6 +204,7 @@ export const api = {
     postJSON<{ ok: boolean; proposedRule?: RuleView }>(`/api/findings/${enc(findingId)}/verdict`, note ? { verdict, note } : { verdict }),
   memory: () => getJSON<MemoryView>("/api/memory"),
   activateRule: (ruleId: string) => postJSON<{ ok: boolean }>(`/api/rules/${enc(ruleId)}/activate`, {}),
+  sentinel: () => postJSON<SentinelResult>("/api/sentinel", {}),
   scan: (req: ScanRequest, onEvent: (e: ScanEvent) => void, signal?: AbortSignal) => streamSSE<ScanEvent>("/api/scan", req, onEvent, signal),
   ask: (id: string, question: string, onEvent: (e: InvestigateEvent) => void, signal?: AbortSignal) =>
     streamSSE<InvestigateEvent>(`/api/projects/${enc(id)}/ask`, { question }, onEvent, signal),

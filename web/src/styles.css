@@ -2432,3 +2432,37 @@ tbody tr:last-child td {
     opacity: 0.8;
   }
 }
+
+/* Sentinel panel on the memory page */
+.sentinel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 20px;
+}
+.sentinel-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.sentinel-head > div {
+  max-width: 62ch;
+}
+.sentinel-head h2 {
+  margin-top: 0;
+}
+.sentinel-result {
+  margin: 12px 0 0;
+}
+.sentinel-hit {
+  border-left: 4px solid var(--taint);
+  background: var(--taint-soft);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+}
+.sentinel-hit ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
