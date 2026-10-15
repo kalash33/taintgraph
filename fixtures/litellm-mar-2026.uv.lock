@@ -1,0 +1,59 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+# Constructed example with real packages: a Python agent app that gets litellm 1.82.8 through dspy.
+# litellm 1.82.8 (March 2026) ran a credential stealer on every Python startup; PyPI removed it.
+
+[[package]]
+name = "support-agent"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "dspy" },
+    { name = "num2words" },
+    { name = "requests" },
+]
+
+[[package]]
+name = "dspy"
+version = "3.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "litellm" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "requests" },
+]
+
+[[package]]
+name = "litellm"
+version = "1.82.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "openai" },
+    { name = "pydantic" },
+]
+
+[[package]]
+name = "openai"
+version = "1.109.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[[package]]
+name = "pydantic"
+version = "2.11.9"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "num2words"
+version = "0.5.15"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "requests"
+version = "2.19.0"
+source = { registry = "https://pypi.org/simple" }
