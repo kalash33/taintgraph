@@ -11,6 +11,7 @@ import { npmKey, npmPackageKey, parseInput, pypiKey, pypiPackageKey, type Parsed
 import { scriptFlags, scriptText, typosquatOf } from "./heuristics.ts";
 import {
   classifyAdvisory,
+  compareVersions,
   depsDevBatch,
   depsDevDependencies,
   depsDevKey,
@@ -215,12 +216,13 @@ async function enrichNpm(parsed: Parsed, pkgs: Pkg[], dd: Map<string, any>, flag
     const pub = who(doc?._npmUser?.name ?? h?.versions[p.version]?.user, doc ? !!doc._npmUser?.trustedPublisher : h?.versions[p.version]?.trusted, p.name);
     if (pub) rows.publishers.push({ ...pub, version: p.key });
 
-    // The release before this one (by publish time, skipping prereleases).
+    // The release before this one: the highest lower stable version published earlier. Comparing by version, not by
+    // time, keeps a backport (semver 5.7.2 in 2023) from being compared with the newest major (7.5.4).
     const mine = Date.parse(h?.time?.[p.version] ?? "");
     if (h && !Number.isNaN(mine)) {
       const prev = Object.entries(h.time)
-        .filter(([v, t]) => h.versions[v] && v !== p.version && !v.includes("-") && Date.parse(t) < mine)
-        .sort((a, b) => Date.parse(a[1]) - Date.parse(b[1]))
+        .filter(([v, t]) => h.versions[v] && v !== p.version && !v.includes("-") && Date.parse(t) < mine && compareVersions(v, p.version) < 0)
+        .sort((a, b) => compareVersions(a[0], b[0]))
         .pop()?.[0];
       if (prev) {
         const pv = h.versions[prev];
@@ -265,8 +267,8 @@ async function enrichPypi(parsed: Parsed, pkgs: Pkg[], dd: Map<string, any>, row
     }
     if (mine?.time) {
       const prev = Object.entries(rel)
-        .filter(([v, r]) => r.time && r.time < mine.time! && /^[\d.]+$/.test(v))
-        .sort((a, b) => (a[1].time! < b[1].time! ? -1 : 1))
+        .filter(([v, r]) => r.time && r.time < mine.time! && /^[\d.]+$/.test(v) && compareVersions(v, p.version) < 0)
+        .sort((a, b) => compareVersions(a[0], b[0]))
         .pop()?.[0];
       if (prev) {
         const prevKey = pypiKey(p.name, prev);

@@ -44,6 +44,15 @@ describe("graph, agents and memory", opts, () => {
     }
   });
 
+  test("a release is compared with the previous version on its own line, not the latest by date", async () => {
+    const { compareVersions } = await import("../src/ingest/feeds.ts");
+    const pairs = await read(ORG, "MATCH (p:Version)-[:PRECEDES]->(v:Version) RETURN p.version AS prev, v.version AS version, v.key AS key");
+    assert.ok(pairs.length > 50, `${pairs.length} PRECEDES edges`);
+    for (const r of pairs) assert.ok(compareVersions(r.prev, r.version) < 0, `${r.key}: previous ${r.prev}`);
+    const incoming = await read(ORG, "MATCH (:Version)-[e:PRECEDES]->(v:Version) WITH v, count(e) AS n WHERE n > 1 RETURN v.key AS key");
+    assert.deepEqual(incoming, [], "one previous release per version");
+  });
+
   test("the September 2025 compromise is found with routes", async () => {
     const s = await summary(ORG, chalk);
     assert.equal(s.verdict, "compromised");
