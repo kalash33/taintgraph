@@ -70,3 +70,10 @@ export async function ping(): Promise<boolean> {
     return false;
   }
 }
+
+/** Close both connections (tests and CLI exits). */
+export async function close() {
+  const [f, r] = [falkorP, redisP];
+  falkorP = redisP = undefined;
+  await Promise.allSettled([f?.then((c) => c.close()), r?.then((c) => c.quit())]);
+}

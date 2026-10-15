@@ -142,7 +142,7 @@ function finalize(text: string, truncated: boolean, corpus: string, results: Too
   const outcome = outcomeOf(results);
   const check = text && !truncated ? validate(text, corpus) : { ok: false, missing: [] };
   if (check.ok) return { text, outcome, validated: true };
-  const why = truncated ? "the model's answer was cut off" : !text ? "the model gave no answer" : `the model named ${check.missing.slice(0, 3).join(", ")}, which the graph didn't return`;
+  const why = truncated ? "the model's answer was cut off" : !text ? "the model gave no answer" : `the model named ${check.missing.length === 1 ? "a package" : `${check.missing.length} packages`} the graph didn't return`;
   return { text: `${rebuild(results)}\n\n(Rebuilt from the graph results because ${why}.)`, outcome, validated: false };
 }
 
