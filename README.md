@@ -104,6 +104,21 @@ It also flags tampered releases that no advisory covers yet:
 
 Every case is also a test: `pnpm test` fails if any incident is missed or any control is flagged.
 
+## How it compares
+
+Taintgraph doesn't try to out-detect commercial scanners. Socket, Snyk and Aikido analyze package contents and catch new malware before an advisory exists; Taintgraph relies on OSV.dev plus release signals. What it adds is the reasoning around a finding, for *your* project:
+
+| | Advisory scanners<br/><sub>npm audit, pip-audit, OSV-Scanner</sub> | Org-wide SBOM graphs<br/><sub>GUAC</sub> | Taintgraph |
+|---|---|---|---|
+| Is a known-bad version installed? | ✅ | ✅ | ✅ |
+| The route into your app, through your own lockfile edges | partial | ✅ | ✅ |
+| Which maintainer accounts can publish the most of your tree | | | ✅ |
+| Worm simulation from one account, wave by wave | | | ✅ |
+| Release tampering without an advisory (takeover, provenance, removed) | | | ✅ |
+| npm, PyPI and AI-tool MCP configs in one graph | | partial | ✅ |
+| Agent that answers questions and shows its queries | | | ✅ |
+| Memory of your verdicts that changes the next scan | | | ✅ |
+
 ## Quick start
 
 You need Docker. No API key is required.
