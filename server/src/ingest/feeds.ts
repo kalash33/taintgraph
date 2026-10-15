@@ -9,7 +9,7 @@ const UA = { "user-agent": config.userAgent };
 
 async function cached<T>(url: string, o: { ttl: number; method?: string; body?: unknown; allow404?: boolean; fresh?: boolean }): Promise<T | null> {
   const body = o.body === undefined ? undefined : JSON.stringify(o.body);
-  const key = "up:cache:" + createHash("sha1").update(`${o.method ?? "GET"} ${url} ${body ?? ""}`).digest("hex");
+  const key = "tg:cache:" + createHash("sha1").update(`${o.method ?? "GET"} ${url} ${body ?? ""}`).digest("hex");
   const r = await redis();
   if (!o.fresh) {
     const hit = await r.get(key);
@@ -106,12 +106,15 @@ export interface Classified {
  * OSV range matching over-includes for malware (the TanStack GHSA range also matches clean 1.169.6), so only an
  * explicit MAL- version list confirms malware; a range-only match is "possible malware".
  */
+/** Advisory wording that describes shipped malware rather than a bug (not "malicious users" or "malicious input"). */
+export const MALWARE_TEXT = /^(malicious|malware)\b|\bmalicious (code|software|package|version|release|payload)|\bmalware\b|\bcrypto ?(currency )?miner|\bcredential stealer|\bbackdoor(ed)?\b/i;
+
 export function classifyAdvisory(v: OsvVuln, name: string, version: string): Classified | null {
   const affected = (v.affected ?? []).filter((a) => a.package?.name && sameName(a.package.name, name));
   const listed = affected.flatMap((a) => a.versions ?? []);
   const isMal = v.id.startsWith("MAL-");
   if (isMal && listed.length && !listed.includes(version)) return null;
-  const malware = isMal || (v.database_specific?.cwe_ids ?? []).includes("CWE-506") || /^(malicious|malware)\b/i.test(v.summary ?? "");
+  const malware = isMal || (v.database_specific?.cwe_ids ?? []).includes("CWE-506") || MALWARE_TEXT.test(v.summary ?? "");
   let fixed: string | null = null;
   for (const a of affected)
     for (const r of a.ranges ?? []) {
@@ -158,7 +161,7 @@ export interface NpmHistory {
 
 /** Release history for one package, slimmed before caching. Packuments over 15 MB (e.g. react's canaries) are skipped. */
 export async function npmHistory(name: string): Promise<NpmHistory | null> {
-  const key = `up:cache:history:${name}`;
+  const key = `tg:cache:history:${name}`;
   const r = await redis();
   const hit = await r.get(key);
   if (hit !== null) return JSON.parse(hit);
@@ -191,7 +194,7 @@ export interface PypiProject {
 }
 
 export async function pypiProject(name: string): Promise<PypiProject | null> {
-  const key = `up:cache:pypi:${name}`;
+  const key = `tg:cache:pypi:${name}`;
   const r = await redis();
   const hit = await r.get(key);
   if (hit !== null) return JSON.parse(hit);
@@ -279,7 +282,7 @@ export function topPackages(eco: Ecosystem): Promise<Map<string, number>> {
   if (!topMemo.has(eco)) {
     const p = (async () => {
       const r = await redis();
-      const key = `up:cache:top:${eco}`;
+      const key = `tg:cache:top:${eco}`;
       const hit = await r.get(key);
       if (hit) return new Map<string, number>(JSON.parse(hit));
       const fresh = await fetchTopPackages(eco);

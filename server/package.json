@@ -1,5 +1,5 @@
 {
-  "name": "@upstream/server",
+  "name": "@taintgraph/server",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "scan": "tsx src/cli.ts",
     "mcp": "node --import tsx src/mcp.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test test/*.test.ts"
+    "test": "node --import tsx --test test/*.test.ts",
+    "bench": "tsx scripts/benchmark.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

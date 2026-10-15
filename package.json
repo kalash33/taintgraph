@@ -1,12 +1,13 @@
 {
-  "name": "upstream",
+  "name": "taintgraph",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "pnpm -C web build",
     "start": "pnpm -C server start",
     "scan": "pnpm -C server scan",
-    "test": "pnpm -C server test"
+    "test": "pnpm -C server test",
+    "bench": "pnpm -C server bench"
   },
   "packageManager": "pnpm@10.33.2"
 }

@@ -17,12 +17,14 @@ test("tool arguments: JSON string, object, broken JSON, junk", () => {
 test("reasoning is stripped from answers", () => {
   assert.equal(stripThinking("<think>hmm, chalk</think>chalk@5.6.1 is malware."), "chalk@5.6.1 is malware.");
   assert.equal(stripThinking("thinking without an opening tag</think>Answer."), "Answer.");
+  assert.equal(stripThinking("ansi\u2011regex@6.2.1"), "ansi-regex@6.2.1");
 });
 
 test("provider is picked from the environment", () => {
   assert.equal(llmFromEnv({}), null);
   assert.match(llmFromEnv({ OPENROUTER_API_KEY: "k" })!.label, /via OpenRouter$/);
-  assert.match(llmFromEnv({ NVIDIA_API_KEY: "k", LLM_MODEL: "meta/llama-3.3-70b-instruct" })!.label, /^meta\/llama-3.3-70b-instruct via NVIDIA$/);
+  assert.match(llmFromEnv({ NVIDIA_API_KEY: "k" })!.label, /^nvidia\/nemotron-3-super-120b-a12b via NVIDIA$/);
+  assert.match(llmFromEnv({ NVIDIA_API_KEY: "k", LLM_MODEL: "z-ai/glm-5.3" })!.label, /^z-ai\/glm-5.3 via NVIDIA$/);
   assert.match(llmFromEnv({ LLM_PROVIDER: "openai", LLM_BASE_URL: "http://localhost:11434/v1", LLM_MODEL: "qwen3" })!.label, /qwen3 via localhost/);
   assert.match(llmFromEnv({ ANTHROPIC_API_KEY: "k" })!.label, /via Anthropic$/);
 });

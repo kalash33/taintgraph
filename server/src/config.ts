@@ -18,7 +18,7 @@ export const config = {
   port: Number(process.env.PORT || 8787),
   defaultOrg: "demo",
   concurrency: 24,
-  userAgent: "upstream-supply-chain/1.0 (graph hacks 2026)",
+  userAgent: "taintgraph-supply-chain/1.0 (graph hacks 2026)",
   trustProxy: process.env.TRUST_PROXY === "1",
 };
 

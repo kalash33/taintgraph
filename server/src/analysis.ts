@@ -178,7 +178,8 @@ export async function triage(org: string, p: ProjectRef, tree: Tree): Promise<{ 
   for (const f of await read(org, Q("release_facts"), { scanId: p.scanId })) {
     const name = `${f.name}@${f.version}`;
     const path = pathTo(tree, f.key);
-    if (f.removed && !byVersion.has(f.key)) {
+    // A removed release is its own finding unless a malware advisory already covers it (an ordinary CVE does not).
+    if (f.removed && !(byVersion.get(f.key) ?? []).some((r) => r.kind === "malware")) {
       add({
         version: f.key, signal: "removed", severity: "critical", path, advisories: [],
         title: /-security$/.test(f.version) ? `npm took ${f.name} down for security reasons` : `${name} was removed from ${registry(f.key)}`,

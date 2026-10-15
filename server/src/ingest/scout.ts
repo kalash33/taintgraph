@@ -131,7 +131,9 @@ async function scanProject(org: string, projectId: string, parsed: Parsed, emit:
   if (noPkg.length) await run(org, Q("mcp_upsert_nopkg"), { projectId, rows: noPkg });
 
   emit({ type: "progress", stage: "Algorithms", message: "Running PageRank over the dependency graph", pct: 86 });
-  await run(org, Q("algo_pagerank"));
+  const [edges] = await run(org, Q("version_edges_exist"));
+  if (edges?.any) await run(org, Q("algo_pagerank"));
+  else await run(org, Q("rank_default"));
 
   emit({ type: "progress", stage: "Triage", message: "Tracing routes to every flagged version and checking memory", pct: 90 });
   const project = await getProject(org, projectId);

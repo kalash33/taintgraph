@@ -119,4 +119,18 @@ describe("graph, agents and memory", opts, () => {
     assert.equal(answer.outcome, "unknown_name");
     assert.match(answer.text, /lodash|lodahs/);
   });
+
+  test("a repeated question is answered from memory, with the earlier evidence", async () => {
+    const ask = async () => {
+      const ev: InvestigateEvent[] = [];
+      await investigate(ORG, chalk, "Is chalk compromised and how does it reach us?", (e) => ev.push(e), { llm: null });
+      return ev;
+    };
+    await ask();
+    const again = await ask();
+    const answer = again.find((e) => e.type === "answer") as Extract<InvestigateEvent, { type: "answer" }>;
+    assert.equal(answer.outcome, "from_memory");
+    const reuse = again.find((e) => e.type === "step" && e.step.tool === "reuse_answer") as Extract<InvestigateEvent, { type: "step" }>;
+    assert.ok(reuse.step.evidence.nodes.includes("npm/chalk@5.6.1"), JSON.stringify(reuse.step.evidence.nodes));
+  });
 });

@@ -200,7 +200,7 @@ export type InvestigateEvent =
   | { type: "error"; message: string };
 
 /*
-REST API. JSON everywhere. Workspace from header `x-upstream-org` (default "demo"; [A-Za-z0-9_-]{1,64}).
+REST API. JSON everywhere. Workspace from header `x-taintgraph-org` (default "demo"; [A-Za-z0-9_-]{1,64}).
 GET  /api/health                              -> { ok, falkordb, llm, agent }
 GET  /api/samples                             -> Sample[]
 POST /api/scan  { sample } | { filename, content } | { githubUrl }   -> text/event-stream of ScanEvent

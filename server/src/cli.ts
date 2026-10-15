@@ -83,7 +83,7 @@ const RANK: Record<Severity, number> = { critical: 0, high: 1, medium: 2, low: 3
 const open = s.findings.filter((f) => f.status === "open" || f.status === "confirmed");
 const failing = !failOn ? [] : failOn === "malware" ? open.filter((f) => COMPROMISE.includes(f.signal)) : open.filter((f) => RANK[f.severity] <= RANK[failOn as Severity]);
 if (failing.length) {
-  console.error(`Upstream: ${failing.length} open finding${failing.length === 1 ? "" : "s"} at or above "${failOn}".`);
+  console.error(`Taintgraph: ${failing.length} open finding${failing.length === 1 ? "" : "s"} at or above "${failOn}".`);
   process.exit(1);
 }
 process.exit(0);
@@ -96,7 +96,7 @@ function toSarif(s: ProjectSummary, uri: string) {
     version: "2.1.0",
     runs: [
       {
-        tool: { driver: { name: "Upstream", informationUri: "https://github.com/kalash33/upstream", rules: [...new Set(s.findings.map((f) => f.signal))].map((id) => ({ id, name: id, shortDescription: { text: id.replace(/_/g, " ") } })) } },
+        tool: { driver: { name: "Taintgraph", informationUri: "https://github.com/kalash33/taintgraph", rules: [...new Set(s.findings.map((f) => f.signal))].map((id) => ({ id, name: id, shortDescription: { text: id.replace(/_/g, " ") } })) } },
         results: s.findings
           .filter((f) => f.status !== "skipped")
           .map((f) => ({
@@ -104,7 +104,7 @@ function toSarif(s: ProjectSummary, uri: string) {
             level: level(f),
             message: { text: `${f.title}. Route: ${route(f)}.${f.fix ? ` Fix: ${f.fix}` : ""}` },
             locations: [{ physicalLocation: { artifactLocation: { uri }, region: { startLine: 1 } } }],
-            partialFingerprints: { upstreamFinding: f.id },
+            partialFingerprints: { taintgraphFinding: f.id },
             properties: { package: `${f.name}@${f.version}`, advisories: f.advisories.map((a) => a.id) },
           })),
       },

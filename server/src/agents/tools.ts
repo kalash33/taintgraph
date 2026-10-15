@@ -2,6 +2,7 @@ import { read } from "../db.ts";
 import { Q, shown } from "../queries.ts";
 import { accounts, loadFindings, pathTo, projectTree, short, simulateWorm, untrusted, verdictOf, type ProjectRef, type Tree } from "../analysis.ts";
 import { editDistance } from "../ingest/heuristics.ts";
+import { compareVersions } from "../ingest/feeds.ts";
 import { COMPROMISE, type Evidence, type Outcome } from "../types.ts";
 import type { ToolSpec } from "./llm.ts";
 
@@ -100,7 +101,8 @@ const exposures: Tool = {
       const cur = seen.get(r.version) ?? { version: r.version, path, malware: false, advisories: [] as string[], fixed: null as string | null, severity: "low" };
       cur.malware ||= r.kind === "malware";
       cur.advisories.push(r.advisory);
-      cur.fixed ??= r.fixed;
+      // The version that clears every advisory on it, not just the first one listed.
+      if (r.fixed && (!cur.fixed || compareVersions(r.fixed, cur.fixed) > 0)) cur.fixed = r.fixed;
       seen.set(r.version, cur);
     }
     const list = [...seen.values()].sort((a, b) => Number(b.malware) - Number(a.malware) || a.path.length - b.path.length);
@@ -274,7 +276,7 @@ const pointInTime: Tool = {
     const end = new Date(d.getTime() + 86_400_000 - 1);
     const rows = await read(c.org, Q("point_in_time"), { projectId: c.project.id, t: end.getTime(), iso: end.toISOString() });
     const day = d.toISOString().slice(0, 10);
-    if (!rows.length) return { outcome: "not_in_graph", summary: `No scan of ${c.project.name} on or before ${day} shows an affected version (the first scan may be later than that).`, data: [], query: "point_in_time", evidence: ev() };
+    if (!rows.length) return { outcome: "not_in_graph", summary: `Unknown: no scan of ${c.project.name} on or before ${day} shows an affected version, and the earliest scan may be later than that date. This is not evidence that the project was safe then.`, data: [], query: "point_in_time", evidence: ev() };
     return {
       outcome: "answered",
       summary: `On ${day} (scan ${rows[0].scan}) ${c.project.name} had ${new Set(rows.map((r) => r.version)).size} affected versions: ${rows.slice(0, 5).map((r) => `${short(r.version)} (${r.advisory}${r.knownAtTheTime === false ? ", not public yet" : r.knownAtTheTime ? ", already public" : ""})`).join("; ")}.`,

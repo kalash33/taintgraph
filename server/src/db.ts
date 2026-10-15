@@ -32,7 +32,7 @@ export function redis(): Promise<Redis> {
 }
 
 /** One graph per workspace (tenant): isolation comes from the graph boundary, not a WHERE clause. */
-export const PREFIX = "up:org:";
+export const PREFIX = "tg:org:";
 export const orgGraph = (org: string) => `${PREFIX}${org}`;
 export const isValidOrg = (org: string) => /^[A-Za-z0-9_-]{1,64}$/.test(org);
 

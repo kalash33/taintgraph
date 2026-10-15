@@ -21,7 +21,7 @@ interface Turn {
 }
 
 function agentLabel(agent?: string): string {
-  if (!agent || agent === "built-in" || agent === "builtin") return "Upstream's built-in investigator";
+  if (!agent || agent === "built-in" || agent === "builtin") return "Taintgraph's built-in investigator";
   return `Answered by ${agent}`;
 }
 
@@ -97,7 +97,7 @@ export default function Ask({ id, investigationId }: { id: string; investigation
   }, [loadSummary]);
 
   useEffect(() => {
-    document.title = summary ? `Ask about ${summary.name} · Upstream` : "Ask · Upstream";
+    document.title = summary ? `Ask about ${summary.name} · Taintgraph` : "Ask · Taintgraph";
   }, [summary]);
 
   const loadDeep = useCallback(() => {
@@ -210,7 +210,7 @@ export default function Ask({ id, investigationId }: { id: string; investigation
           <a href={href.project(id)}>{summary?.name ?? "Project"}</a>
         </p>
         <h1 id="page-title" tabIndex={-1}>
-          Ask Upstream
+          Ask Taintgraph
         </h1>
         <p className="muted">
           An analyst agent answers from the graph. Every step shows the tool it used, the Cypher it ran and what came back.

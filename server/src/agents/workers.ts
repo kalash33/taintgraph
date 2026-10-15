@@ -1,4 +1,3 @@
-import { hostname } from "node:os";
 import { listOrgs, run } from "../db.ts";
 import { Q } from "../queries.ts";
 import { investigate } from "./analyst.ts";
@@ -11,7 +10,8 @@ import { claimTask, createTask, finishTask } from "./tasks.ts";
 // tasks held by a worker that died go back to the queue.
 
 export const AUTO_QUESTION = "What in this project is compromised or suspicious, and how does it reach the app?";
-const worker = `${hostname()}-${process.pid}`;
+// Workers are named without the hostname, which would otherwise show up in the UI.
+const worker = process.env.TAINTGRAPH_WORKER || `worker-${process.pid}`;
 let timer: NodeJS.Timeout | null = null;
 let busy = false;
 
@@ -37,8 +37,8 @@ export async function tick(): Promise<number> {
 /** Work through one workspace's queue. */
 export async function drain(org: string): Promise<number> {
   let done = 0;
-  // The automatic handoff uses the built-in investigator unless UPSTREAM_AUTO_LLM=1, so scans don't spend model credits.
-  const llm = process.env.UPSTREAM_AUTO_LLM === "1" ? llmFromEnv() : null;
+  // The automatic handoff uses the built-in investigator unless TAINTGRAPH_AUTO_LLM=1, so scans don't spend model credits.
+  const llm = process.env.TAINTGRAPH_AUTO_LLM === "1" ? llmFromEnv() : null;
   for (let task = await claimTask(org, "analyst", worker); task; task = await claimTask(org, "analyst", worker)) {
     try {
       const id = await investigate(org, task.projectId, AUTO_QUESTION, () => {}, { llm });

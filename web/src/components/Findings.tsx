@@ -47,7 +47,7 @@ function RuleNotice({ rule }: { rule: RuleView }) {
   return (
     <div className="rule-notice">
       <p>
-        Upstream learned a rule: when <strong>{signalLabel(rule.when)}</strong> then{" "}
+        Taintgraph learned a rule: when <strong>{signalLabel(rule.when)}</strong> then{" "}
         <strong>{rule.then === "escalate" ? "escalate" : "skip it"}</strong> ({conf}% confidence)
       </p>
       {state === "active" ? (
@@ -276,7 +276,7 @@ export default function Findings({
     onStatusChange(f.id, verdict, note);
     const label = STATUS_LABEL[verdict];
     setAnnounce(
-      `Marked ${f.name}@${f.version} as ${label}.${res.proposedRule ? " Upstream learned a rule from this; you can activate it below the card." : ""}`,
+      `Marked ${f.name}@${f.version} as ${label}.${res.proposedRule ? " Taintgraph learned a rule from this; you can activate it below the card." : ""}`,
     );
     return res.proposedRule;
   };

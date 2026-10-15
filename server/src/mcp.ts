@@ -14,15 +14,15 @@ import { context, toolByName } from "./agents/tools.ts";
 import { recordVerdict } from "./memory.ts";
 import { COMPROMISE } from "./types.ts";
 
-// Upstream as an MCP server: a coding agent can scan the lockfile it is about to change, ask how a package reaches
+// Taintgraph as an MCP server: a coding agent can scan the lockfile it is about to change, ask how a package reaches
 // the app, and record what it decided. Everything except scan and record_verdict is read-only.
 // stdout belongs to the protocol, so logs go to stderr.
 
 console.log = console.error;
-const org = process.env.UPSTREAM_ORG || config.defaultOrg;
-if (!isValidOrg(org)) throw new Error("UPSTREAM_ORG must be 1-64 letters, digits, - or _.");
+const org = process.env.TAINTGRAPH_ORG || config.defaultOrg;
+if (!isValidOrg(org)) throw new Error("TAINTGRAPH_ORG must be 1-64 letters, digits, - or _.");
 
-const server = new McpServer({ name: "upstream", version: "1.0.0" });
+const server = new McpServer({ name: "taintgraph", version: "1.0.0" });
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
 const fail = (t: string) => ({ content: [{ type: "text" as const, text: t }], isError: true });
 const guard =
@@ -31,7 +31,7 @@ const guard =
     try {
       return await fn(a);
     } catch (e: any) {
-      return fail(e?.statusCode ? e.message : `Upstream failed: ${String(e?.message ?? e).slice(0, 200)}`);
+      return fail(e?.statusCode ? e.message : `Taintgraph failed: ${String(e?.message ?? e).slice(0, 200)}`);
     }
   };
 
@@ -63,7 +63,7 @@ server.registerTool(
 server.registerTool(
   "ask",
   {
-    description: "Ask Upstream's Analyst a question about a scanned project, e.g. 'Is chalk compromised and how does it reach us?' or 'What if maintainer qix is phished?'. It answers from the graph and shows its steps.",
+    description: "Ask Taintgraph's Analyst a question about a scanned project, e.g. 'Is chalk compromised and how does it reach us?' or 'What if maintainer qix is phished?'. It answers from the graph and shows its steps.",
     inputSchema: { projectId: z.string(), question: z.string().max(500) },
   },
   guard(async ({ projectId, question }: { projectId: string; question: string }) => {
@@ -98,13 +98,13 @@ for (const name of ["explain_package", "trace_exposures", "top_accounts", "simul
 server.registerTool(
   "record_verdict",
   {
-    description: "Record a decision about a finding: confirmed (real threat), dismissed (not a threat) or accepted (risk accepted). Upstream learns from repeated verdicts. An agent can't dismiss or accept malware or removed-release findings: a person has to do that in the web app.",
+    description: "Record a decision about a finding: confirmed (real threat), dismissed (not a threat) or accepted (risk accepted). Taintgraph learns from repeated verdicts. An agent can't dismiss or accept malware or removed-release findings: a person has to do that in the web app.",
     inputSchema: { findingId: z.string(), verdict: z.enum(["confirmed", "dismissed", "accepted"]), note: z.string().max(500).optional() },
   },
   guard(async ({ findingId, verdict, note }: { findingId: string; verdict: "confirmed" | "dismissed" | "accepted"; note?: string }) => {
     const [row] = await read(org, Q("finding_signal"), { id: findingId });
     if (!row) return fail(`No finding "${findingId}".`);
-    if (verdict !== "confirmed" && COMPROMISE.includes(row.signal)) return fail(`Finding ${findingId} is ${row.signal.replace(/_/g, " ")}. Only a person can clear that, in the Upstream web app.`);
+    if (verdict !== "confirmed" && COMPROMISE.includes(row.signal)) return fail(`Finding ${findingId} is ${row.signal.replace(/_/g, " ")}. Only a person can clear that, in the Taintgraph web app.`);
     const r = await recordVerdict(org, findingId, verdict, `${note ?? ""} (recorded by an agent over MCP)`.trim());
     return text(`Recorded ${verdict} for ${findingId}.${r.proposedRule ? ` Proposed rule: ${r.proposedRule.when} → ${r.proposedRule.then} (needs a person to activate it).` : ""}`);
   }),
@@ -116,4 +116,4 @@ const shutdown = () => void close().finally(() => process.exit(0));
 transport.onclose = shutdown;
 process.stdin.on("end", shutdown);
 await server.connect(transport);
-console.error(`[upstream mcp] workspace "${org}" ready`);
+console.error(`[taintgraph mcp] workspace "${org}" ready`);

@@ -1,5 +1,5 @@
 {
-  "name": "@upstream/web",
+  "name": "@taintgraph/web",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,4 +1,4 @@
-/* Upstream — "river survey" */
+/* Taintgraph: dependencies flow toward the app on the right; tainted routes are drawn in --taint. */
 
 :root {
   --paper: #eef2f1;

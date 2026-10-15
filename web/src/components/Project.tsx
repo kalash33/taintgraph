@@ -102,7 +102,7 @@ export default function Project({ id }: { id: string }) {
   }, [load]);
 
   useEffect(() => {
-    document.title = summary ? `${summary.name} · Upstream` : "Project · Upstream";
+    document.title = summary ? `${summary.name} · Taintgraph` : "Project · Taintgraph";
   }, [summary]);
 
   const counts = useMemo(() => {
@@ -213,7 +213,7 @@ export default function Project({ id }: { id: string }) {
         </div>
         <div className="head-actions">
           <a className="btn btn-primary" href={href.ask(summary.id)}>
-            Ask Upstream
+            Ask Taintgraph
           </a>
           <button type="button" className="btn" onClick={() => setReportOpen(true)}>
             Report
@@ -247,7 +247,7 @@ export default function Project({ id }: { id: string }) {
           <summary>What am I looking at?</summary>
           <div className="explain-body">
             <p>
-              Upstream loaded every package version in your lockfile into a graph, with who can publish each package and every
+              Taintgraph loaded every package version in your lockfile into a graph, with who can publish each package and every
               advisory that names it.
             </p>
             <ul>
@@ -264,7 +264,7 @@ export default function Project({ id }: { id: string }) {
               </li>
             </ul>
             <p>
-              Counts include findings that are open or that you marked as a real threat. Your verdicts teach Upstream rules for the
+              Counts include findings that are open or that you marked as a real threat. Your verdicts teach Taintgraph rules for the
               next scan.
             </p>
           </div>

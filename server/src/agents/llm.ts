@@ -30,7 +30,7 @@ export interface Llm {
 
 const PROVIDERS: Record<string, { base: string; key: string; model: string; name: string }> = {
   openrouter: { base: "https://openrouter.ai/api/v1", key: "OPENROUTER_API_KEY", model: "openai/gpt-oss-120b", name: "OpenRouter" },
-  nvidia: { base: "https://integrate.api.nvidia.com/v1", key: "NVIDIA_API_KEY", model: "openai/gpt-oss-120b", name: "NVIDIA" },
+  nvidia: { base: "https://integrate.api.nvidia.com/v1", key: "NVIDIA_API_KEY", model: "nvidia/nemotron-3-super-120b-a12b", name: "NVIDIA" },
 };
 
 /** The configured model, or null: then the built-in investigator answers. */
@@ -52,6 +52,7 @@ export function llmFromEnv(env = process.env): Llm | null {
 /** Reasoning models put their thoughts in the content; the user only sees the answer. */
 export const stripThinking = (s: string) =>
   s
+    .replace(/[\u2010\u2011]/g, "-") // models like non-breaking hyphens; package names use plain ones
     .replace(/<(think|thinking|reasoning)>[\s\S]*?<\/\1>/gi, "")
     .replace(/^[\s\S]*?<\/(think|thinking)>/i, "")
     .trim();
@@ -86,8 +87,10 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
     try {
       return await fn();
     } catch (e: any) {
-      const retry = e instanceof Retryable || e?.name === "TimeoutError" || e?.cause?.code || e?.name === "TypeError";
-      if (!retry || i >= attempts) throw e instanceof Retryable ? new Error(e.message) : e;
+      // A model that timed out once will usually time out again: fail over to the built-in investigator instead.
+      const timedOut = e?.name === "TimeoutError";
+      const retry = e instanceof Retryable || e?.cause?.code || e?.name === "TypeError";
+      if (timedOut || !retry || i >= attempts) throw e instanceof Retryable ? new Error(e.message) : e;
       await sleep(Math.min(20_000, (e as Retryable).wait || 1000 * 2 ** (i - 1)));
     }
   }
@@ -105,8 +108,8 @@ export function openAiCompatible(o: { base: string; apiKey: string; model: strin
           headers: {
             "content-type": "application/json",
             ...(o.apiKey ? { authorization: `Bearer ${o.apiKey}` } : {}),
-            "x-title": "Upstream",
-            "http-referer": "https://github.com/kalash33/upstream",
+            "x-title": "Taintgraph",
+            "http-referer": "https://github.com/kalash33/taintgraph",
           },
           body: JSON.stringify({
             model: o.model,
@@ -116,7 +119,7 @@ export function openAiCompatible(o: { base: string; apiKey: string; model: strin
             temperature: 0,
             max_tokens: 2000,
           }),
-          signal: AbortSignal.timeout(90_000),
+          signal: AbortSignal.timeout(45_000),
         });
         const body = await res.text();
         if (res.status === 429 || res.status >= 500) throw new Retryable(`${o.name} ${res.status}: ${body.slice(0, 200)}`, Number(res.headers.get("retry-after")) * 1000 || 0);

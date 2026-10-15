@@ -58,11 +58,11 @@ const getHash = () => window.location.hash;
 /* ---------- per-history-entry scroll restoration ---------- */
 
 function entryKey(): string {
-  const st = window.history.state as { upstreamKey?: string } | null;
-  if (st && typeof st.upstreamKey === "string") return st.upstreamKey;
+  const st = window.history.state as { taintgraphKey?: string } | null;
+  if (st && typeof st.taintgraphKey === "string") return st.taintgraphKey;
   const key = Math.random().toString(36).slice(2, 10);
   try {
-    window.history.replaceState({ ...(st ?? {}), upstreamKey: key }, "");
+    window.history.replaceState({ ...(st ?? {}), taintgraphKey: key }, "");
   } catch {
     /* ignore */
   }
@@ -81,7 +81,7 @@ function useScrollRestore(hash: string) {
     const onScroll = () => {
       window.clearTimeout(t);
       t = window.setTimeout(() => {
-        if (keyRef.current) sessionSet(`upstream-scroll:${keyRef.current}`, String(Math.round(window.scrollY)));
+        if (keyRef.current) sessionSet(`taintgraph-scroll:${keyRef.current}`, String(Math.round(window.scrollY)));
       }, 120);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -94,7 +94,7 @@ function useScrollRestore(hash: string) {
   useEffect(() => {
     const key = entryKey();
     keyRef.current = key;
-    const saved = Number(sessionGet(`upstream-scroll:${key}`));
+    const saved = Number(sessionGet(`taintgraph-scroll:${key}`));
     if (!saved) {
       window.scrollTo(0, 0);
       return;
@@ -156,7 +156,7 @@ function useFocusHeading(hash: string) {
 /* ---------- theme ---------- */
 
 type Theme = "system" | "light" | "dark";
-const THEME_KEY = "upstream-theme";
+const THEME_KEY = "taintgraph-theme";
 
 function readTheme(): Theme {
   try {
@@ -217,10 +217,15 @@ export default function App() {
       <header className="site-header">
         <nav className="nav" aria-label="Main">
           <a className="wordmark" href={href.intake()}>
-            <svg viewBox="0 0 32 20" width="28" height="18" aria-hidden="true" focusable="false">
-              <path d="M2 4c8 0 10 6 18 6h10M2 16c8 0 10-6 18-6" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+            <svg viewBox="0 0 32 22" width="30" height="21" aria-hidden="true" focusable="false">
+              <path d="M5 11 15 4.5 27 11M5 11l10 6.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M15 17.5 27 11" fill="none" stroke="var(--taint)" strokeWidth="2.4" strokeLinecap="round" />
+              <circle cx="5" cy="11" r="3" fill="currentColor" />
+              <circle cx="15" cy="4.5" r="3" fill="currentColor" />
+              <circle cx="15" cy="17.5" r="3.2" fill="var(--taint)" />
+              <circle cx="27" cy="11" r="3.6" fill="currentColor" />
             </svg>
-            Upstream
+            Taintgraph
           </a>
           <ul className="nav-links">
             {projectId && (

@@ -68,7 +68,7 @@ export default function Memory() {
     api.memory().then(setMem, setError);
   }, []);
   useEffect(() => {
-    document.title = "Memory · Upstream";
+    document.title = "Memory · Taintgraph";
     load();
   }, [load]);
 
@@ -78,7 +78,7 @@ export default function Memory() {
         Memory
       </h1>
       <p className="lede">
-        What Upstream remembers between scans: your verdicts, the rules it learned from them, past questions, and the work its
+        What Taintgraph remembers between scans: your verdicts, the rules it learned from them, past questions, and the work its
         agents handed to each other.
       </p>
       {error ? (
@@ -91,7 +91,7 @@ export default function Memory() {
             <h2 id="inv-h">Past investigations</h2>
             {mem.investigations.length === 0 ? (
               <Empty title="No questions asked yet.">
-                <p>Open a project and choose Ask Upstream.</p>
+                <p>Open a project and choose Ask Taintgraph.</p>
               </Empty>
             ) : (
               <ul className="inv-list">
@@ -113,7 +113,7 @@ export default function Memory() {
             <h2 id="rules-h">Learned rules</h2>
             {mem.rules.length === 0 ? (
               <Empty title="No rules yet.">
-                <p>When you mark findings as real threats or not, Upstream proposes rules from the pattern.</p>
+                <p>When you mark findings as real threats or not, Taintgraph proposes rules from the pattern.</p>
               </Empty>
             ) : (
               <ul className="rule-list">

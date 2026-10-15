@@ -19,7 +19,7 @@ import type {
 
 /* ---------- workspace (org) ---------- */
 
-const ORG_KEY = "upstream-org";
+const ORG_KEY = "taintgraph-org";
 const ORG_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 export function getOrg(): string {
@@ -54,8 +54,8 @@ export class ApiError extends Error {
   }
 }
 
-export const SERVER_DOWN = "Upstream's server isn't responding. Try again in a moment.";
-export const RATE_LIMITED = "Upstream is handling a lot of requests right now. Wait a minute, then try again.";
+export const SERVER_DOWN = "Taintgraph's server isn't responding. Try again in a moment.";
+export const RATE_LIMITED = "Taintgraph is handling a lot of requests right now. Wait a minute, then try again.";
 
 function friendly(status: number, serverMessage: string | undefined): ApiError {
   if (status === 429) return new ApiError("rate_limited", RATE_LIMITED, status);
@@ -86,7 +86,7 @@ export function toApiError(e: unknown): ApiError {
 /* ---------- fetch helpers ---------- */
 
 function headers(json: boolean): HeadersInit {
-  const h: Record<string, string> = { "x-upstream-org": getOrg(), accept: "application/json" };
+  const h: Record<string, string> = { "x-taintgraph-org": getOrg(), accept: "application/json" };
   if (json) h["content-type"] = "application/json";
   return h;
 }

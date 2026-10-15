@@ -1,4 +1,4 @@
-# Upstream: API, agents and the built web app in one image. FalkorDB runs beside it (docker-compose.yml).
+# Taintgraph: API, agents and the built web app in one image. FalkorDB runs beside it (docker-compose.yml).
 FROM node:24-slim AS build
 WORKDIR /app
 RUN corepack enable

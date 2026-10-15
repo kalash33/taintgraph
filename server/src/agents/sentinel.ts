@@ -21,7 +21,7 @@ const running = new Set<string>();
 export async function runSentinel(org: string): Promise<SentinelResult> {
   // One run per workspace at a time, across processes too.
   if (running.has(org)) throw Object.assign(new Error("The Sentinel is already running for this workspace."), { statusCode: 409 });
-  const lock = `up:lock:sentinel:${org}`;
+  const lock = `tg:lock:sentinel:${org}`;
   const r = await redis();
   if ((await r.set(lock, "1", { NX: true, EX: 600 })) !== "OK") throw Object.assign(new Error("The Sentinel is already running for this workspace."), { statusCode: 409 });
   running.add(org);

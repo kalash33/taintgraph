@@ -20,9 +20,9 @@ const bad = (msg: string, statusCode = 400) => Object.assign(new Error(msg), { s
 
 // ───────────── workspace (org) and rate limits ─────────────
 function org(req: FastifyRequest): string {
-  const h = req.headers["x-upstream-org"];
+  const h = req.headers["x-taintgraph-org"];
   const o = (Array.isArray(h) ? h[0] : h)?.trim() || config.defaultOrg;
-  if (!isValidOrg(o)) throw bad("x-upstream-org must be 1-64 letters, digits, - or _.");
+  if (!isValidOrg(o)) throw bad("x-taintgraph-org must be 1-64 letters, digits, - or _.");
   return o;
 }
 
@@ -162,4 +162,4 @@ if (existsSync(join(paths.web, "index.html"))) {
 startWorkers();
 await app.listen({ port: config.port, host: process.env.HOST ?? "0.0.0.0" });
 const llm = llmFromEnv();
-app.log.info(`Upstream on http://localhost:${config.port} · FalkorDB ${(await ping()) ? "connected" : "NOT reachable at " + config.falkordbUrl} · Analyst: ${llm?.label ?? "built-in (set OPENROUTER_API_KEY or NVIDIA_API_KEY for a model)"}`);
+app.log.info(`Taintgraph on http://localhost:${config.port} · FalkorDB ${(await ping()) ? "connected" : "NOT reachable at " + config.falkordbUrl} · Analyst: ${llm?.label ?? "built-in (set OPENROUTER_API_KEY or NVIDIA_API_KEY for a model)"}`);

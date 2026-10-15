@@ -41,7 +41,7 @@ export function ErrorState({
       <p>{down ? SERVER_DOWN : message}</p>
       {down && import.meta.env.DEV && (
         <p className="muted small">
-          If you're running Upstream locally, start it with <code>pnpm start</code>.
+          If you're running Taintgraph locally, start it with <code>pnpm start</code>.
         </p>
       )}
       {onRetry && (

@@ -58,7 +58,7 @@ export default function Intake() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    document.title = "Scan · Upstream";
+    document.title = "Scan · Taintgraph";
   }, []);
 
   const loadSamples = useCallback(() => {
@@ -135,14 +135,14 @@ export default function Intake() {
 
   const readFile = async (file: File) => {
     if (file.size > 25 * 1024 * 1024) {
-      setInputError("That file is larger than 25 MB. Upstream reads lockfiles and MCP configs, which are usually much smaller.");
+      setInputError("That file is larger than 25 MB. Taintgraph reads lockfiles and MCP configs, which are usually much smaller.");
       return;
     }
     try {
       const content = await file.text();
       run({ filename: file.name, content });
     } catch {
-      setInputError("Upstream couldn't read that file. Try choosing it again or paste its contents instead.");
+      setInputError("Taintgraph couldn't read that file. Try choosing it again or paste its contents instead.");
     }
   };
 
@@ -170,7 +170,7 @@ export default function Intake() {
       return;
     }
     if (!pasteFilename) {
-      setInputError("Upstream couldn't tell what kind of file this is. Type its filename, like package-lock.json.");
+      setInputError("Taintgraph couldn't tell what kind of file this is. Type its filename, like package-lock.json.");
       return;
     }
     run({ filename: pasteFilename, content: paste });
@@ -185,7 +185,7 @@ export default function Intake() {
           Find out how a compromise reaches your app.
         </h1>
         <p className="lede">
-          Give Upstream a lockfile or an AI tool's MCP config. It maps every package, who can publish it, and which
+          Give Taintgraph a lockfile or an AI tool's MCP config. It maps every package, who can publish it, and which
           advisories touch it, then traces the exact route anything dangerous takes into your code.
         </p>
       </section>
@@ -266,7 +266,7 @@ export default function Intake() {
                     ) : paste.trim() && !guessed ? (
                       "Couldn't tell the file type. Type its filename."
                     ) : (
-                      "Upstream guesses this from the contents."
+                      "Taintgraph guesses this from the contents."
                     )}
                   </p>
                 </div>
@@ -280,7 +280,7 @@ export default function Intake() {
           <form className="github-form" onSubmit={onGithub}>
             <label htmlFor="github-url">GitHub repository</label>
             <p className="hint" id="github-hint">
-              Upstream fetches the lockfiles and MCP configs from a public repository.
+              Taintgraph fetches the lockfiles and MCP configs from a public repository.
             </p>
             <div className="inline-field">
               <input

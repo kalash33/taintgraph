@@ -79,7 +79,7 @@ export default function Accounts({
                   <div className="account-top">
                     <code className="login">{a.login}</code>
                     <span className="kind">{KIND_LABEL[a.kind] ?? a.kind}</span>
-                    {a.flagged && <span className="flag-mark">Published a flagged version</span>}
+                    {a.flagged && <span className="flag-mark">Can publish a flagged package</span>}
                   </div>
                   <div className="reach" aria-hidden="true">
                     <span style={{ width: `${Math.max(2, (a.share / maxShare) * 100)}%` }} className={a.flagged ? "flagged" : undefined} />
