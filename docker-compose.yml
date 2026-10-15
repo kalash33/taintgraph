@@ -15,6 +15,7 @@ services:
     environment:
       FALKORDB_URL: redis://falkordb:6379
       PORT: 8787
+      TAINTGRAPH_SEED: "1" # scan the samples into the demo workspace on first start
     ports: ["127.0.0.1:8787:8787"]
 volumes:
   falkordb-data:

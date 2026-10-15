@@ -14,6 +14,7 @@ import { getReport } from "./agents/reporter.ts";
 import { runSentinel } from "./agents/sentinel.ts";
 import { startWorkers } from "./agents/workers.ts";
 import { activateRule, memoryView, recordVerdict, type Verdict } from "./memory.ts";
+import { seedWorkspace } from "./seed.ts";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 26 * 1024 * 1024, trustProxy: config.trustProxy });
 const bad = (msg: string, statusCode = 400) => Object.assign(new Error(msg), { statusCode });
@@ -160,6 +161,8 @@ if (existsSync(join(paths.web, "index.html"))) {
 }
 
 startWorkers();
+// A fresh deployment opens with the samples already scanned (TAINTGRAPH_SEED=1), without delaying startup.
+if (process.env.TAINTGRAPH_SEED === "1") void seedWorkspace(config.defaultOrg, (m) => app.log.info(m)).catch((e) => app.log.warn(e));
 await app.listen({ port: config.port, host: process.env.HOST ?? "0.0.0.0" });
 const llm = llmFromEnv();
 app.log.info(`Taintgraph on http://localhost:${config.port} · FalkorDB ${(await ping()) ? "connected" : "NOT reachable at " + config.falkordbUrl} · Analyst: ${llm?.label ?? "built-in (set OPENROUTER_API_KEY or NVIDIA_API_KEY for a model)"}`);
