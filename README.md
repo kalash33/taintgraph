@@ -210,6 +210,7 @@ All 67 Cypher queries are plain files in [`queries/`](queries). They use `shorte
 | [Graph model](docs/graph-model.md) | every node and relationship, the key queries, FalkorDB notes |
 | [Agents and memory](docs/agents.md) | the Analyst's tools and checks, memory, coordination, the Sentinel |
 | [Usage](docs/usage.md) | web app, CLI, GitHub Actions, MCP server, HTTP API, configuration |
+| [Deploying](docs/deploy.md) | Docker Compose on a VM, Railway, and what to lock down first |
 | [Benchmark](benchmark/RESULTS.md) | real incidents and controls, with results |
 | [Security](SECURITY.md) | how Taintgraph handles hostile package data, and how to run it safely |
 | [Contributing](CONTRIBUTING.md) | setup, checks, conventions |
