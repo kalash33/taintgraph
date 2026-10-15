@@ -1,0 +1,35 @@
+{
+  "about": "Real supply-chain incidents (the exact versions that shipped malicious code) and clean controls. Each case is scanned as its own one-package project. `expect` is what a correct tool should say: compromised for an incident, not compromised for a control.",
+  "cases": [
+    { "id": "event-stream-2018", "ecosystem": "npm", "name": "flatmap-stream", "version": "0.1.1", "date": "2018-11", "expect": "compromised", "what": "Maintainer handed event-stream to a stranger, who added flatmap-stream to steal Copay bitcoin wallets." },
+    { "id": "event-stream-host-2018", "ecosystem": "npm", "name": "event-stream", "version": "3.3.6", "date": "2018-11", "expect": "compromised", "what": "The event-stream release that pulled in flatmap-stream." },
+    { "id": "ua-parser-js-2021", "ecosystem": "npm", "name": "ua-parser-js", "version": "0.7.29", "date": "2021-10", "expect": "compromised", "what": "Hijacked npm account published a cryptominer and password stealer." },
+    { "id": "coa-2021", "ecosystem": "npm", "name": "coa", "version": "2.0.3", "date": "2021-11", "expect": "compromised", "what": "Hijacked account, same malware family as ua-parser-js." },
+    { "id": "rc-2021", "ecosystem": "npm", "name": "rc", "version": "1.2.9", "date": "2021-11", "expect": "compromised", "what": "Hijacked account, released hours after coa." },
+    { "id": "colors-2022", "ecosystem": "npm", "name": "colors", "version": "1.4.1", "date": "2022-01", "expect": "compromised", "what": "The author sabotaged his own package with an infinite loop (protestware)." },
+    { "id": "node-ipc-2022", "ecosystem": "npm", "name": "node-ipc", "version": "10.1.1", "date": "2022-03", "expect": "compromised", "what": "Protestware that overwrote files on machines with Russian or Belarusian IP addresses." },
+    { "id": "lottie-player-2024", "ecosystem": "npm", "name": "@lottiefiles/lottie-player", "version": "2.0.5", "date": "2024-10", "expect": "compromised", "what": "Stolen publish token; the release prompted visitors to connect crypto wallets and drained them." },
+    { "id": "solana-web3-2024", "ecosystem": "npm", "name": "@solana/web3.js", "version": "1.95.6", "date": "2024-12", "expect": "compromised", "what": "Phished maintainer; the release exfiltrated private keys." },
+    { "id": "ultralytics-2024", "ecosystem": "PyPI", "name": "ultralytics", "version": "8.3.41", "date": "2024-12", "expect": "compromised", "what": "GitHub Actions cache poisoning shipped a cryptominer to PyPI." },
+    { "id": "eslint-config-prettier-2025", "ecosystem": "npm", "name": "eslint-config-prettier", "version": "8.10.1", "date": "2025-07", "expect": "compromised", "what": "Phished maintainer; install script dropped the Scavenger loader on Windows." },
+    { "id": "is-2025", "ecosystem": "npm", "name": "is", "version": "3.3.1", "date": "2025-07", "expect": "compromised", "what": "Same phishing campaign as eslint-config-prettier." },
+    { "id": "num2words-2025", "ecosystem": "PyPI", "name": "num2words", "version": "0.5.15", "date": "2025-07", "expect": "compromised", "what": "PyPI release from the same Scavenger campaign." },
+    { "id": "nx-s1ngularity-2025", "ecosystem": "npm", "name": "nx", "version": "21.5.0", "date": "2025-08", "expect": "compromised", "what": "s1ngularity: a postinstall script used local AI coding CLIs to hunt for secrets and published them to GitHub." },
+    { "id": "chalk-2025", "ecosystem": "npm", "name": "chalk", "version": "5.6.1", "date": "2025-09", "expect": "compromised", "what": "Phished maintainer (qix); browser crypto-clipper in 18 packages with billions of weekly downloads." },
+    { "id": "debug-2025", "ecosystem": "npm", "name": "debug", "version": "4.4.2", "date": "2025-09", "expect": "compromised", "what": "Same campaign as chalk." },
+    { "id": "shai-hulud-2025", "ecosystem": "npm", "name": "@ctrl/tinycolor", "version": "4.1.1", "date": "2025-09", "expect": "compromised", "what": "Shai-Hulud: a self-replicating worm that stole npm tokens and republished every package the victim maintained." },
+    { "id": "litellm-2026", "ecosystem": "PyPI", "name": "litellm", "version": "1.82.8", "date": "2026-03", "expect": "compromised", "what": "A credential stealer that ran on every Python startup through a .pth file." },
+    { "id": "tanstack-2026", "ecosystem": "npm", "name": "@tanstack/react-router", "version": "1.169.5", "date": "2026-05", "expect": "compromised", "what": "84 malicious versions published in six minutes with a hijacked trusted-publishing token." },
+
+    { "id": "control-chalk-fixed", "ecosystem": "npm", "name": "chalk", "version": "5.6.2", "date": "2025-09", "expect": "clean", "what": "The clean release that replaced chalk 5.6.1." },
+    { "id": "control-debug-fixed", "ecosystem": "npm", "name": "debug", "version": "4.4.3", "date": "2025-09", "expect": "clean", "what": "The clean release that replaced debug 4.4.2." },
+    { "id": "control-chalk-before", "ecosystem": "npm", "name": "chalk", "version": "5.6.0", "date": "2025-08", "expect": "clean", "what": "The release before the compromise." },
+    { "id": "control-react", "ecosystem": "npm", "name": "react", "version": "18.3.1", "date": "2024-04", "expect": "clean", "what": "Popular, clean." },
+    { "id": "control-lodash", "ecosystem": "npm", "name": "lodash", "version": "4.17.21", "date": "2021-02", "expect": "clean", "what": "Popular; has ordinary CVEs but no malware." },
+    { "id": "control-express", "ecosystem": "npm", "name": "express", "version": "4.21.2", "date": "2024-12", "expect": "clean", "what": "Popular, clean." },
+    { "id": "control-typescript", "ecosystem": "npm", "name": "typescript", "version": "5.6.3", "date": "2024-10", "expect": "clean", "what": "Popular, clean." },
+    { "id": "control-requests", "ecosystem": "PyPI", "name": "requests", "version": "2.32.3", "date": "2024-05", "expect": "clean", "what": "Popular; has ordinary CVEs but no malware." },
+    { "id": "control-django", "ecosystem": "PyPI", "name": "django", "version": "5.1.4", "date": "2024-12", "expect": "clean", "what": "Popular; many ordinary CVEs, no malware." },
+    { "id": "control-litellm-before", "ecosystem": "PyPI", "name": "litellm", "version": "1.82.6", "date": "2026-03", "expect": "clean", "what": "A litellm release before the compromise." }
+  ]
+}
