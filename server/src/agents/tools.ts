@@ -332,6 +332,43 @@ const fix: Tool = {
   },
 };
 
+const workspace: Tool = {
+  label: "Checked every project",
+  spec: {
+    name: "workspace_exposure",
+    description: "Across every project in this workspace (not just this one): which projects install a package (optionally one exact version), or which projects one maintainer account can publish into. Use during an incident to find everything affected.",
+    parameters: { type: "object", properties: { name: { type: "string", description: "Package, optionally with @version, e.g. chalk@5.6.1" }, login: { type: "string", description: "Maintainer account, e.g. qix" } } },
+  },
+  async run(c, args) {
+    const login = str(args.login, 100).replace(/^@/, "");
+    if (login) {
+      const rows = await read(c.org, Q("workspace_account"), { login });
+      if (!rows.length) return { outcome: "unknown_name", summary: `${login} doesn't maintain anything installed in this workspace.`, data: [], query: "workspace_account", evidence: ev() };
+      return {
+        outcome: "answered",
+        summary: `${rows[0].login} can publish into ${rows.length} project${rows.length === 1 ? "" : "s"} in this workspace: ${rows.map((r) => `${r.project} (${r.versions} installed version${r.versions === 1 ? "" : "s"}, e.g. ${(r.packages as string[]).slice(0, 3).join(", ")})`).join("; ")}.`,
+        data: rows.map((r) => ({ project: r.project, versions: r.versions, packages: r.packages })),
+        query: "workspace_account",
+        evidence: ev([rows[0].accountKey, ...rows.map((r) => `project/${r.projectId}`)], rows.map((r) => [rows[0].accountKey, `project/${r.projectId}`, "CAN_PUBLISH_INTO"] as [string, string, string])),
+      };
+    }
+    const raw = str(args.name);
+    if (!raw) return { outcome: "unknown_name", summary: "Name a package or an account.", data: null, query: "workspace_package", evidence: ev() };
+    const { name, version } = splitName(raw);
+    const rows = await read(c.org, Q("workspace_package"), { name, version: version ?? null });
+    if (!rows.length) return { outcome: "unknown_name", summary: `No project in this workspace installs ${version ? `${name}@${version}` : name}.`, data: [], query: "workspace_package", evidence: ev() };
+    const projects = [...new Map(rows.map((r) => [r.projectId, r])).values()];
+    const pubs = [...new Set(rows.flatMap((r) => r.publishers as string[]))].slice(0, 4);
+    return {
+      outcome: "answered",
+      summary: `${version ? `${name}@${version}` : name} is installed in ${projects.length} project${projects.length === 1 ? "" : "s"}: ${projects.map((p) => `${p.project} (${rows.filter((r) => r.projectId === p.projectId).map((r) => r.version).join(", ")}${rows.filter((r) => r.projectId === p.projectId).every((r) => r.dev) ? ", dev only" : ""})`).join("; ")}.${pubs.length ? ` Published by ${pubs.join(", ")}.` : ""}`,
+      data: rows.map((r) => ({ project: r.project, verdict: r.verdict, version: r.version, devOnly: !!r.dev, publishedBy: r.publishers, maintainers: (r.maintainers as string[]).slice(0, 8) })),
+      query: "workspace_package",
+      evidence: ev([...new Set(rows.flatMap((r) => [`project/${r.projectId}`, r.key]))], rows.map((r) => [`project/${r.projectId}`, r.key, "INSTALLS"] as [string, string, string])),
+    };
+  },
+};
+
 const chokepoints: Tool = {
   label: "Found chokepoints",
   spec: { name: "chokepoints", description: "The versions the most dependency paths run through (betweenness centrality): patching or pinning these protects the most.", parameters: { type: "object", properties: {} } },
@@ -375,7 +412,7 @@ export const recall: Tool = {
   },
 };
 
-export const TOOLS: Tool[] = [overview, exposures, explain, fix, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
+export const TOOLS: Tool[] = [overview, exposures, explain, fix, workspace, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
 export const toolByName = new Map([...TOOLS, recall].map((t) => [t.spec.name, t]));
 export const queryText = (r: ToolResult) => shown(r.query);
 export { COMPROMISE };

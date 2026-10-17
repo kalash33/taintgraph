@@ -201,6 +201,12 @@ async function builtIn(ctx: Ctx, q: string, step: Step, all: () => ToolResult[])
     if (candidate && !STOP.has(candidate.toLowerCase())) await add("simulate_worm", { login: candidate.replace(/^@/, "") });
   }
   if (wantsAccounts || (wantsWorm && !login)) await add("top_accounts");
+  // Incident questions across the whole workspace.
+  if (/other projects|which projects|all (of )?(our|my|the) projects|across|anywhere else|workspace|every project|other apps/.test(lower)) {
+    const named = login ? [login.replace(/^@/, "")] : (await read(ctx.org, Q("accounts_named"), { words: tokens.map((t) => t.replace(/^@/, "").toLowerCase()).filter((t) => !STOP.has(t)) })).map((r) => r.login as string);
+    for (const l of named.slice(0, 2)) await add("workspace_exposure", { login: l });
+    for (const t of pkgs.slice(0, 2)) await add("workspace_exposure", { name: t });
+  }
   if (/\bmcp\b|claude|cursor|agent tool|ai tool/.test(lower)) await add("mcp_servers");
   if (date) await add("exposed_on", { date });
   if (/chokepoint|bottleneck|central|most paths|pin first|patch first/.test(lower)) await add("chokepoints");

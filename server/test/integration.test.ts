@@ -69,6 +69,18 @@ describe("graph, agents and memory", opts, () => {
     assert.match(squat.note, /lodash/);
   });
 
+  test("workspace exposure finds every project that installs a version, and every project an account reaches", async () => {
+    const { toolByName, context } = await import("../src/agents/tools.ts");
+    const ctx = context(ORG, await getProject(ORG, typo));
+    const pkg = await toolByName.get("workspace_exposure")!.run(ctx, { name: "chalk@5.6.1" });
+    assert.equal(pkg.outcome, "answered");
+    const projects = new Set((pkg.data as any[]).map((r) => r.project));
+    assert.ok(projects.has("aider-extension") && projects.has("vs-code-obsidian"), [...projects].join(","));
+    const acct = await toolByName.get("workspace_exposure")!.run(ctx, { login: "qix" });
+    assert.ok((acct.data as any[]).length >= 2);
+    assert.equal((await toolByName.get("workspace_exposure")!.run(ctx, { name: "not-a-real-package-xyz" })).outcome, "unknown_name");
+  });
+
   test("the September 2025 compromise is found with routes", async () => {
     const s = await summary(ORG, chalk);
     assert.equal(s.verdict, "compromised");

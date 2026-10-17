@@ -148,7 +148,7 @@ Open http://localhost:8787 and click **chalk and debug, September 2025**: a real
 docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
 pnpm install
 pnpm build && pnpm start          # http://localhost:8787
-pnpm test                         # 65 tests: unit, integration, real incidents
+pnpm test                         # 66 tests: unit, integration, real incidents
 ```
 </details>
 
@@ -198,7 +198,7 @@ flowchart LR
 ```
 
 - **Scout** parses the input, pulls advisories and registry history, writes the graph, runs PageRank and triages.
-- **Analyst** answers questions with eleven fixed tools over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
+- **Analyst** answers questions with twelve fixed tools, including workspace-wide ones ("which of our projects install chalk@5.6.1, and what else can its maintainer reach?"), over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
 - **Reporter** writes an incident report you can forward.
 - **Sentinel** re-checks every version any project ever installed against OSV, so an advisory published today finds the app that installed the package last month.
 

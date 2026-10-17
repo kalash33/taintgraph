@@ -79,7 +79,7 @@ Lets a coding agent check a lockfile before it changes one:
 | `scan` | scan a local lockfile or MCP config by path, or a sample |
 | `list_projects` | projects in the workspace with their verdicts |
 | `ask` | ask the Analyst; returns the answer and its steps |
-| `explain_package`, `trace_exposures`, `fix_plan`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints` | the Analyst's graph tools, one-to-one |
+| `explain_package`, `trace_exposures`, `fix_plan`, `workspace_exposure`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints` | the Analyst's graph tools, one-to-one |
 | `record_verdict` | record a decision. An agent can confirm malware but cannot dismiss or accept it; only a person can, in the web app |
 
 ## HTTP API
