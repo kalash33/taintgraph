@@ -115,6 +115,8 @@ It also flags tampered releases that no advisory covers yet:
 
 Every case is also a test: `pnpm test` fails if any incident is missed or any control is flagged.
 
+It also scans real repositories straight from GitHub: React, Astro, Vite, LangChain, FastAPI, Flask, Bun, TypeScript and more. Every lockfile format parses, large monorepos finish in about two minutes, and only the two genuinely compromised lockfiles are called compromised. [Results](benchmark/REPOS.md).
+
 ## How it compares
 
 Taintgraph doesn't try to out-detect commercial scanners. Socket, Snyk and Aikido analyze package contents and catch new malware before an advisory exists; Taintgraph relies on OSV.dev plus release signals. What it adds is the reasoning around a finding, for *your* project:
