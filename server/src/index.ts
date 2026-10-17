@@ -70,7 +70,7 @@ function sse(reply: FastifyReply) {
 }
 
 /** Errors the user can act on keep their message; infrastructure errors don't leak details. */
-const userMessage = (e: any) => (e?.statusCode && e.statusCode < 500) || (e instanceof Error && !/ECONN|redis|socket|falkor|timeout/i.test(e.message)) ? e.message : "The scan failed on the server. Check that FalkorDB is running.";
+const userMessage = (e: any) => (e?.statusCode && e.statusCode < 500 ? e.message : "The scan failed on the server. Check that FalkorDB is running, then try again.");
 
 // ───────────── routes ─────────────
 app.get("/api/health", async () => {

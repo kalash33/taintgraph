@@ -125,9 +125,15 @@ export async function fixPlan(org: string, projectId: string): Promise<FixPlan> 
         ],
       }
     : null;
+  const tool = p.source.startsWith("poetry") ? "poetry" : p.source.startsWith("uv") ? "uv" : "pip";
   const python = pyItems.length
     ? {
-        commands: [`uv lock ${pyItems.map((i) => `--upgrade-package ${i.name}==${i.to}`).join(" ")}`, "pip install -c constraints.txt -r requirements.txt   # with pip"],
+        commands:
+          tool === "uv"
+            ? [`uv lock ${pyItems.map((i) => `--upgrade-package ${i.name}==${i.to}`).join(" ")}`, "uv sync"]
+            : tool === "poetry"
+              ? [...pyItems.map((i) => `poetry add "${i.name}==${i.to}"`), "poetry lock && poetry install"]
+              : ["# pin these versions in requirements.txt, or install with the constraints file:", "pip install -c constraints.txt -r requirements.txt"],
         constraints: pyItems.map((i) => `${i.name}==${i.to}`).join("\n") + "\n",
       }
     : null;

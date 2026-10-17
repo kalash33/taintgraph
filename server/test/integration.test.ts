@@ -188,4 +188,48 @@ describe("graph, agents and memory", opts, () => {
     const reuse = again.find((e) => e.type === "step" && e.step.tool === "reuse_answer") as Extract<InvestigateEvent, { type: "step" }>;
     assert.ok(reuse.step.evidence.nodes.includes("npm/chalk@5.6.1"), JSON.stringify(reuse.step.evidence.nodes));
   });
+
+  test("a model that keeps calling tools is asked for its answer in the last round, not dropped", async () => {
+    let finalSeen = false;
+    const llm: Llm = {
+      label: "eager via test",
+      async chat(_m, _tools, opts) {
+        if (opts?.final) {
+          finalSeen = true;
+          return { text: "chalk@5.6.1 is malware.", calls: [], truncated: false, message: { role: "assistant", content: "chalk@5.6.1 is malware." } };
+        }
+        const call = { id: `c${Math.random()}`, name: "explain_package", args: { name: "chalk" } };
+        return { text: "", calls: [call], truncated: false, message: { role: "assistant", content: null, tool_calls: [{ id: call.id, type: "function", function: { name: call.name, arguments: "{}" } }] } };
+      },
+    };
+    const events: InvestigateEvent[] = [];
+    await investigate(ORG, chalk, "tell me everything about chalk, keep digging", (e) => events.push(e), { llm });
+    const answer = events.find((e) => e.type === "answer") as Extract<InvestigateEvent, { type: "answer" }>;
+    assert.ok(finalSeen);
+    assert.equal(answer.text, "chalk@5.6.1 is malware.");
+  });
+
+  test("a learned skip rule never hides critical or high vulnerabilities", async () => {
+    await run(ORG, "MERGE (r:Rule {id: 'rule-vulnerability-skip'}) SET r.when = 'vulnerability', r.then = 'skip', r.status = 'active', r.confidence = 0.9");
+    try {
+      const id = await scan(ORG, loadSample("chalk-2025"));
+      const vulns = (await summary(ORG, id)).findings.filter((f) => f.signal === "vulnerability");
+      assert.ok(vulns.some((f) => f.severity === "critical" || f.severity === "high"));
+      for (const f of vulns) if (f.severity === "critical" || f.severity === "high") assert.notEqual(f.status, "skipped", `${f.name}@${f.version}`);
+    } finally {
+      await run(ORG, "MATCH (r:Rule {id: 'rule-vulnerability-skip'}) DETACH DELETE r");
+    }
+  });
+
+  test("while a rescan is being written, readers keep the last complete scan", async () => {
+    const before = await summary(ORG, chalk);
+    await run(ORG, "MATCH (p:Project {id: $id}) SET p.latest_scan = 'scan-in-progress'", { id: chalk });
+    try {
+      const during = await summary(ORG, chalk);
+      assert.equal(during.verdict, before.verdict);
+      assert.equal(during.findings.length, before.findings.length);
+    } finally {
+      await run(ORG, "MATCH (p:Project {id: $id}) SET p.latest_scan = p.triaged_scan", { id: chalk });
+    }
+  });
 });

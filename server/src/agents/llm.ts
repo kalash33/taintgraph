@@ -25,7 +25,8 @@ export interface Reply {
 }
 export interface Llm {
   label: string; // "<model> via <provider>"
-  chat(messages: Msg[], tools: ToolSpec[]): Promise<Reply>;
+  /** final: answer now, no more tool calls (the tool specs are still sent, since the history refers to them). */
+  chat(messages: Msg[], tools: ToolSpec[], opts?: { final?: boolean }): Promise<Reply>;
 }
 
 const PROVIDERS: Record<string, { base: string; key: string; model: string; name: string }> = {
@@ -103,7 +104,7 @@ export function openAiCompatible(o: { base: string; apiKey: string; model: strin
   const url = `${o.base.replace(/\/$/, "")}/chat/completions`;
   return {
     label: `${o.model} via ${o.name}`,
-    async chat(messages, tools) {
+    async chat(messages, tools, opts = {}) {
       const data: any = await withRetry(async () => {
         const res = await f(url, {
           method: "POST",
@@ -116,8 +117,7 @@ export function openAiCompatible(o: { base: string; apiKey: string; model: strin
           body: JSON.stringify({
             model: o.model,
             messages,
-            tools: tools.map((t) => ({ type: "function", function: t })),
-            tool_choice: "auto",
+            ...(tools.length ? { tools: tools.map((t) => ({ type: "function", function: t })), tool_choice: opts.final ? "none" : "auto" } : {}),
             temperature: 0,
             max_tokens: 2000,
           }),
@@ -159,7 +159,7 @@ export function anthropic(apiKey: string, model: string): Llm {
   const client = new Anthropic({ apiKey, maxRetries: 3, timeout: 90_000 });
   return {
     label: `${model} via Anthropic`,
-    async chat(messages, tools) {
+    async chat(messages, tools, opts = {}) {
       const system = messages.filter((m) => m.role === "system").map((m) => m.content as string).join("\n\n");
       const out: Anthropic.MessageParam[] = [];
       for (const m of messages) {
@@ -183,6 +183,7 @@ export function anthropic(apiKey: string, model: string): Llm {
         system,
         messages: out,
         tools: tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters as Anthropic.Tool.InputSchema })),
+        ...(opts.final && tools.length ? { tool_choice: { type: "none" as const } } : {}),
       });
       const text = stripThinking(res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n"));
       const calls = res.content.flatMap((b) => (b.type === "tool_use" ? [{ id: b.id, name: b.name, args: parseArgs(b.input) }] : []));

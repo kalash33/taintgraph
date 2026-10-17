@@ -2,7 +2,7 @@
 
 Each row is one exact version from a real supply-chain incident (or a clean control), scanned as a one-package project with `pnpm bench`.
 A row passes when Taintgraph calls an incident compromised and does not call a control compromised. Ordinary CVEs don't count either way.
-A control can still read *suspicious*: that comes from ordinary high-severity CVEs (lodash, django), which Taintgraph reports as vulnerabilities, not compromise.
+A control can still read *vulnerable*: that comes from ordinary high-severity CVEs (lodash, django), which Taintgraph reports as vulnerabilities, not compromise.
 "possible_malware" means a malware advisory matches by version range or by its wording rather than naming the version explicitly; "removed" means the registry no longer serves the pinned version.
 
 **Detected 19 of 19 real incidents; 0 false alarms on 10 clean controls.**
@@ -32,11 +32,11 @@ A control can still read *suspicious*: that comes from ordinary high-severity CV
 | 2025-09 | npm | `debug@4.4.3` | clean | clean | – | – | ✅ |
 | 2025-08 | npm | `chalk@5.6.0` | clean | clean | – | – | ✅ |
 | 2024-04 | npm | `react@18.3.1` | clean | clean | – | – | ✅ |
-| 2021-02 | npm | `lodash@4.17.21` | clean | suspicious | – | GHSA-f23m-r3pf-42rh, GHSA-r5fr-rjxr-66jc | ✅ |
+| 2021-02 | npm | `lodash@4.17.21` | clean | vulnerable | – | GHSA-f23m-r3pf-42rh, GHSA-r5fr-rjxr-66jc | ✅ |
 | 2024-12 | npm | `express@4.21.2` | clean | clean | – | – | ✅ |
 | 2024-10 | npm | `typescript@5.6.3` | clean | clean | – | – | ✅ |
 | 2024-05 | PyPI | `requests@2.32.3` | clean | clean | – | GHSA-9hjg-9r4m-mvj7, GHSA-gc5v-m9x4-r6x2 | ✅ |
-| 2024-12 | PyPI | `django@5.1.4` | clean | suspicious | – | GHSA-3h9f-r86x-qvjx, GHSA-6w2r-r2m5-xq5w | ✅ |
-| 2026-03 | PyPI | `litellm@1.82.6` | clean | suspicious | – | GHSA-3cv6-jpf6-8222, GHSA-4g5m-c9r5-49xf | ✅ |
+| 2024-12 | PyPI | `django@5.1.4` | clean | vulnerable | – | GHSA-3h9f-r86x-qvjx, GHSA-6w2r-r2m5-xq5w | ✅ |
+| 2026-03 | PyPI | `litellm@1.82.6` | clean | vulnerable | – | GHSA-3cv6-jpf6-8222, GHSA-4g5m-c9r5-49xf | ✅ |
 
-Generated 2026-10-15. Advisory data from OSV.dev changes over time; rerun to refresh.
+Generated 2026-10-17. Advisory data from OSV.dev changes over time; rerun to refresh.

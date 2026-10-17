@@ -18,13 +18,14 @@ export async function runSentinel(org: string): Promise<SentinelResult> {
   if (running.has(org)) throw Object.assign(new Error("The Sentinel is already running for this workspace."), { statusCode: 409 });
   const lock = `tg:lock:sentinel:${org}`;
   const r = await redis();
-  if ((await r.set(lock, "1", { NX: true, EX: 600 })) !== "OK") throw Object.assign(new Error("The Sentinel is already running for this workspace."), { statusCode: 409 });
+  const token = Math.random().toString(36).slice(2);
+  if ((await r.set(lock, token, { NX: true, EX: 1800 })) !== "OK") throw Object.assign(new Error("The Sentinel is already running for this workspace."), { statusCode: 409 });
   running.add(org);
   try {
     return await hunt(org);
   } finally {
     running.delete(org);
-    await r.del(lock).catch(() => {});
+    if ((await r.get(lock).catch(() => null)) === token) await r.del(lock).catch(() => {});
   }
 }
 

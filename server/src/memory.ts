@@ -18,7 +18,7 @@ export async function recordVerdict(org: string, findingId: string, verdict: Ver
   if (!row) throw notFound(`No finding "${findingId}" in this workspace.`);
   if (row.projectId) {
     const p = await getProject(org, row.projectId);
-    await run(org, Q("project_set_verdict"), { projectId: p.id, verdict: verdictOf(await loadFindings(org, p)) });
+    await run(org, Q("project_set_verdict"), { projectId: p.id, verdict: verdictOf(await loadFindings(org, p)), scanId: p.scanId });
   }
   const signal = row.signal as SignalId;
   if (COMPROMISE.includes(signal)) return { ok: true };

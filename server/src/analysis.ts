@@ -42,11 +42,12 @@ export interface ProjectRef {
   direct: number;
 }
 
-export async function getProject(org: string, projectId: string): Promise<ProjectRef> {
+export async function getProject(org: string, projectId: string, opts: { newest?: boolean } = {}): Promise<ProjectRef> {
   const [row] = await read(org, Q("project_get"), { projectId });
   if (!row?.project?.id) throw notFound(`No project "${projectId}" in this workspace. Scan a lockfile first.`);
   const p = row.project;
-  return { id: p.id, key: p.key, name: p.name, kind: p.kind, source: p.source, scanId: p.latest_scan, scannedAt: p.scanned_at, direct: row.direct };
+  const scanId = opts.newest ? p.latest_scan : (p.triaged_scan ?? p.latest_scan);
+  return { id: p.id, key: p.key, name: p.name, kind: p.kind, source: p.source, scanId, scannedAt: scanId === p.latest_scan ? p.scanned_at : (p.triaged_at ?? p.scanned_at), direct: row.direct };
 }
 
 export async function listProjects(org: string): Promise<ProjectListItem[]> {
@@ -277,7 +278,7 @@ export async function triage(org: string, p: ProjectRef, tree: Tree): Promise<{ 
       if (rule.then === "escalate" && d.status !== "skipped") {
         d.severity = "critical";
         d.note = `Escalated by a learned rule (${d.signal.replace(/_/g, " ")} → escalate).`;
-      } else if (rule.then === "skip" && d.status === "open") {
+      } else if (rule.then === "skip" && d.status === "open" && SEV[d.severity] > SEV.high) {
         d.status = "skipped";
         d.note = `Skipped by a learned rule (${d.signal.replace(/_/g, " ")} → skip).`;
       }
@@ -290,7 +291,7 @@ export async function triage(org: string, p: ProjectRef, tree: Tree): Promise<{ 
   if (ev.length) await run(org, Q("findings_evidence"), { rows: ev });
   const findings = await loadFindings(org, p);
   const verdict = verdictOf(findings);
-  await run(org, Q("project_set_verdict"), { projectId: p.id, verdict });
+  await run(org, Q("project_set_verdict"), { projectId: p.id, verdict, scanId: p.scanId });
   return { findings, verdict };
 }
 

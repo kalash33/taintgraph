@@ -26,7 +26,7 @@ const headers = () => ({
 
 export function parseRepoUrl(url: string): { owner: string; repo: string; ref?: string; path?: string } {
   const m = url.trim().match(/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/(tree|blob)\/([^/]+)(?:\/(.+?))?)?\/?(?:[?#].*)?$/);
-  if (!m) throw Object.assign(new Error("Paste a GitHub repository URL like https://github.com/owner/repo"), { statusCode: 400 });
+  if (!m) throw fail("Paste a GitHub repository URL like https://github.com/owner/repo");
   return { owner: m[1], repo: m[2], ref: m[4], path: m[5] };
 }
 
@@ -58,27 +58,56 @@ export function parentLockfiles(paths: string[], dir: string): string[] {
   return [];
 }
 
+const fail = (message: string, statusCode = 400) => Object.assign(new Error(message), { statusCode });
+
+/** Read a response body, stopping at MAX bytes even without a content-length header. */
+async function capped(res: Response, what: string): Promise<string> {
+  if (Number(res.headers.get("content-length") ?? 0) > MAX) throw fail(`${what} is larger than 25 MB.`, 413);
+  const reader = res.body!.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > MAX) {
+      await reader.cancel();
+      throw fail(`${what} is larger than 25 MB.`, 413);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 async function json(url: string) {
   const res = await fetch(url, { headers: headers(), signal: AbortSignal.timeout(20_000) });
-  if (res.status === 403 || res.status === 429) throw new Error("GitHub's rate limit for anonymous requests was reached. Try again later, or set GITHUB_TOKEN on the server.");
+  if (res.status === 403 || res.status === 429) throw fail("GitHub's rate limit for anonymous requests was reached. Try again later, or set GITHUB_TOKEN on the server.", 429);
   return res;
 }
 
 export async function githubFile(url: string): Promise<RepoFile> {
-  const { owner, repo, ref, path } = parseRepoUrl(url);
+  const { owner, repo, ref } = parseRepoUrl(url);
+  let { path } = parseRepoUrl(url);
   const meta = await json(`https://api.github.com/repos/${owner}/${repo}`);
-  if (!meta.ok) throw new Error(`GitHub returned ${meta.status} for ${owner}/${repo}. Is the repository public?`);
-  const branch = ref ?? ((await meta.json()) as any).default_branch ?? "main";
+  if (!meta.ok) throw fail(`GitHub returned ${meta.status} for ${owner}/${repo}. Is the repository public?`, 404);
+  let branch: string = ref ?? ((await meta.json()) as any).default_branch ?? "main";
 
-  const tree = await json(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
-  if (!tree.ok) throw new Error(`GitHub returned ${tree.status} for the ${branch} branch of ${owner}/${repo}.`);
+  // A branch name can contain slashes (/tree/feature/x/apps/web): try longer branch names until GitHub knows one.
+  let tree = await json(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  const segments = path ? path.split("/") : [];
+  while (!tree.ok && ref && segments.length) {
+    branch = `${branch}/${segments.shift()}`;
+    path = segments.join("/") || undefined;
+    tree = await json(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  }
+  if (!tree.ok) throw fail(`GitHub returned ${tree.status} for the ${branch} branch of ${owner}/${repo}.`, 404);
   const all = (((await tree.json()) as any).tree ?? []).filter((e: any) => e.type === "blob").map((e: any) => e.path as string);
   // A link straight to a file scans that file; a link to a folder looks inside it.
   let list = path && all.includes(path) ? [path] : candidates(all, path);
   // A workspace package (apps/web) usually has no lockfile of its own: use the nearest one above it, like the package manager does.
   if (!list.length && path) list = parentLockfiles(all, path);
   if (!list.length)
-    throw new Error(`No lockfile or MCP config in ${owner}/${repo}${path ? `/${path}` : ""}. Supported: ${LOCKFILES.join(", ")}, and MCP configs (${MCP_CONFIGS.join(", ")}).`);
+    throw fail(`No lockfile or MCP config in ${owner}/${repo}${path ? `/${path}` : ""}. Supported: ${LOCKFILES.join(", ")}, and MCP configs (${MCP_CONFIGS.join(", ")}).`);
 
   const tried: string[] = [];
   for (const p of list.slice(0, 6)) {
@@ -86,8 +115,7 @@ export async function githubFile(url: string): Promise<RepoFile> {
       signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) continue;
-    if (Number(res.headers.get("content-length") ?? 0) > MAX) throw new Error(`${p} in ${owner}/${repo} is larger than 25 MB.`);
-    const content = await res.text();
+    const content = await capped(res, `${p} in ${owner}/${repo}`);
     const filename = p.split("/").pop()!;
     try {
       parseInput(filename, content); // e.g. a requirements.txt with no pinned versions: try the next file
@@ -98,5 +126,5 @@ export async function githubFile(url: string): Promise<RepoFile> {
     const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
     return { filename, content, name: dir ? `${owner}/${repo}/${dir}` : `${owner}/${repo}`, path: p, others: list.filter((x) => x !== p).slice(0, 10) };
   }
-  throw new Error(`Found ${tried.length ? tried.join(", ") : list.slice(0, 3).join(", ")} in ${owner}/${repo}, but none has pinned versions Taintgraph can read. Commit a lockfile, or pin requirements with ==.`);
+  throw fail(`Found ${tried.length ? tried.join(", ") : list.slice(0, 3).join(", ")} in ${owner}/${repo}, but none has pinned versions Taintgraph can read. Commit a lockfile, or pin requirements with ==.`);
 }

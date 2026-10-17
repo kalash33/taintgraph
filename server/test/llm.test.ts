@@ -67,9 +67,10 @@ test("OpenAI-compatible: a 401 fails at once, a cut-off answer is marked", async
 test("answers may only name what the tools returned", () => {
   const corpus = '{"package":"chalk@5.6.1","route":"your project → lint-staged@16.1.6 → chalk@5.6.1","fixedIn":"5.6.2"}';
   assert.deepEqual(validate("chalk@5.6.1 arrives through lint-staged@16.1.6.", corpus), { ok: true, missing: [] });
-  const bad = validate("chalk@5.6.1 and debug@4.4.2 are malware; also check `event-stream`.", corpus);
+  const bad = validate("chalk@5.6.1 and debug@4.4.2 are malware; also check `event-stream@3.3.6`.", corpus);
   assert.equal(bad.ok, false);
-  assert.deepEqual(bad.missing.sort(), ["debug@4.4.2", "event-stream"]);
+  assert.deepEqual(bad.missing.sort(), ["debug@4.4.2", "event-stream@3.3.6"]);
+  assert.equal(validate("Add an `overrides` block to `package.json`, delete `node_modules` and rotate `.env` secrets for chalk@5.6.1.", corpus).ok, true, "plain backticked words aren't package claims");
 });
 
 test("provider extras on tool calls (Gemini thought signatures) are sent back unchanged", async () => {

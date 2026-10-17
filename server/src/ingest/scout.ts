@@ -4,7 +4,7 @@ import { config } from "../config.ts";
 import { batched, run } from "../db.ts";
 import { Q } from "../queries.ts";
 import { ensureSchema } from "../schema.ts";
-import { getProject, projectTree, triage } from "../analysis.ts";
+import { getProject, projectTree, triage, untrusted } from "../analysis.ts";
 import { createTask } from "../agents/tasks.ts";
 import type { Ecosystem, ScanEvent } from "../types.ts";
 import { npmKey, npmPackageKey, parseInput, pypiKey, pypiPackageKey, type Parsed, type Pkg } from "./parsers.ts";
@@ -57,7 +57,14 @@ function serialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
 /** Scout agent: parse -> enrich from public feeds -> write the workspace graph -> triage -> hand off to the Analyst. */
 export async function scan(org: string, input: { filename: string; content: string; name?: string }, emit: Emit = () => {}): Promise<string> {
   emit({ type: "progress", stage: "Reading", message: `Reading ${input.filename}`, pct: 2 });
-  const parsed = parseInput(input.filename, input.content);
+  let parsed: Parsed;
+  try {
+    parsed = parseInput(input.filename, input.content);
+  } catch (e: any) {
+    throw Object.assign(e, { statusCode: 400 }); // the file's problem, safe to show
+  }
+  parsed.name = untrusted(parsed.name).slice(0, 100) || input.filename;
+  for (const m of parsed.mcp) m.name = untrusted(m.name).slice(0, 80);
   if (input.name) parsed.name = input.name;
   const projectId = identify(parsed, !!input.name);
   return serialized(`${org}|${projectId}`, () => scanProject(org, projectId, parsed, emit));
@@ -137,13 +144,12 @@ async function scanProject(org: string, projectId: string, parsed: Parsed, emit:
   else await run(org, Q("rank_default"));
 
   emit({ type: "progress", stage: "Triage", message: "Tracing routes to every flagged version and checking memory", pct: 90 });
-  const project = await getProject(org, projectId);
+  const project = await getProject(org, projectId, { newest: true });
   const { findings, verdict } = await triage(org, project, await projectTree(org, project));
   await createTask(org, projectId, "analyze", "analyst", { scanId });
   const open = findings.filter((f) => f.status !== "skipped").length;
   const skipped = findings.length - open;
   emit({ type: "progress", stage: "Done", message: `Verdict: ${verdict}. ${open} finding${open === 1 ? "" : "s"}${skipped ? `, ${skipped} skipped by memory` : ""}. The Analyst has been asked to review it.`, pct: 100 });
-  emit({ type: "done", projectId });
   return projectId;
 }
 
