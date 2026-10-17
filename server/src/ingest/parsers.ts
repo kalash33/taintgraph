@@ -224,6 +224,13 @@ function yarnV1(content: string, filename: string): Parsed {
   let inDeps = false;
   const flush = () => {
     if (!cur) return;
+    // A local package (link:, file:, portal:, workspace:) is not installed from the registry, even if a package with the
+    // same name exists there (React's eslint-plugin-react-internal is a local folder; an unrelated npm package is malware).
+    if (cur.specs.every((x) => /@(link|file|portal|workspace):/.test(x))) {
+      blocks.push({ pkg: null, deps: cur.deps });
+      cur = null;
+      return;
+    }
     const p = b.add(cur.name, cur.version);
     if (p) cur.specs.forEach((s) => bySpec.set(s, p));
     blocks.push({ pkg: p, deps: cur.deps });

@@ -201,3 +201,8 @@ test("pnpm 11+: a lockfile with two YAML documents uses the project document, no
   const r = parseInput("pnpm-lock.yaml", lock);
   assert.deepEqual([...r.packages.values()].map((x) => x.key), ["npm/chalk@5.6.1"]);
 });
+
+test("yarn v1: local link:/file: packages are not registry packages", () => {
+  const lock = ["# yarn lockfile v1", "", "\"eslint-plugin-react-internal@link:./scripts/eslint-rules\":", "  version \"0.0.0\"", "  uid \"\"", "", "chalk@^5.6.0:", "  version \"5.6.1\"", "  resolved \"https://registry.yarnpkg.com/chalk/-/chalk-5.6.1.tgz\"", ""].join("\n");
+  assert.deepEqual([...parseInput("yarn.lock", lock).packages.values()].map((x) => x.key), ["npm/chalk@5.6.1"]);
+});
