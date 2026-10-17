@@ -27,6 +27,7 @@ test("provider is picked from the environment", () => {
   assert.match(llmFromEnv({ NVIDIA_API_KEY: "k", LLM_MODEL: "z-ai/glm-5.3" })!.label, /^z-ai\/glm-5.3 via NVIDIA$/);
   assert.match(llmFromEnv({ LLM_PROVIDER: "openai", LLM_BASE_URL: "http://localhost:11434/v1", LLM_MODEL: "qwen3" })!.label, /qwen3 via localhost/);
   assert.match(llmFromEnv({ ANTHROPIC_API_KEY: "k" })!.label, /via Anthropic$/);
+  assert.match(llmFromEnv({ GEMINI_API_KEY: "k", NVIDIA_API_KEY: "k" })!.label, /^gemini-3.5-flash via Gemini$/, "Gemini first when its key is set");
 });
 
 test("OpenAI-compatible: retries a 200 with an error body and a 429, then parses calls without ids", async () => {
@@ -69,4 +70,11 @@ test("answers may only name what the tools returned", () => {
   const bad = validate("chalk@5.6.1 and debug@4.4.2 are malware; also check `event-stream`.", corpus);
   assert.equal(bad.ok, false);
   assert.deepEqual(bad.missing.sort(), ["debug@4.4.2", "event-stream"]);
+});
+
+test("provider extras on tool calls (Gemini thought signatures) are sent back unchanged", async () => {
+  const sig = { google: { thought_signature: "abc123" } };
+  const llm = openAiCompatible({ base: "http://x/v1", apiKey: "k", model: "m", name: "Test", fetchImpl: (async () => json({ choices: [{ finish_reason: "tool_calls", message: { content: null, tool_calls: [{ id: "c1", type: "function", function: { name: "fix_plan", arguments: "{}" }, extra_content: sig }] } }] })) as typeof fetch });
+  const r = await llm.chat([{ role: "user", content: "hi" }], []);
+  assert.deepEqual((r.message as any).tool_calls[0].extra_content, sig);
 });

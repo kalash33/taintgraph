@@ -15,7 +15,7 @@ export interface ToolCall {
 }
 export type Msg =
   | { role: "system" | "user"; content: string }
-  | { role: "assistant"; content: string | null; tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[]; [extra: string]: unknown }
+  | { role: "assistant"; content: string | null; tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string }; [extra: string]: unknown }[]; [extra: string]: unknown }
   | { role: "tool"; tool_call_id: string; content: string };
 export interface Reply {
   text: string;
@@ -29,6 +29,7 @@ export interface Llm {
 }
 
 const PROVIDERS: Record<string, { base: string; key: string; model: string; name: string }> = {
+  gemini: { base: "https://generativelanguage.googleapis.com/v1beta/openai", key: "GEMINI_API_KEY", model: "gemini-3.5-flash", name: "Gemini" },
   openrouter: { base: "https://openrouter.ai/api/v1", key: "OPENROUTER_API_KEY", model: "openai/gpt-oss-120b", name: "OpenRouter" },
   nvidia: { base: "https://integrate.api.nvidia.com/v1", key: "NVIDIA_API_KEY", model: "nvidia/nemotron-3-super-120b-a12b", name: "NVIDIA" },
 };
@@ -41,7 +42,7 @@ export function llmFromEnv(env = process.env): Llm | null {
     if (!env.LLM_BASE_URL) return null;
     return openAiCompatible({ base: env.LLM_BASE_URL, apiKey: env.LLM_API_KEY ?? "", model: model || "gpt-4o-mini", name: new URL(env.LLM_BASE_URL).hostname });
   }
-  for (const id of pick ? [pick] : ["openrouter", "nvidia"]) {
+  for (const id of pick ? [pick] : ["gemini", "openrouter", "nvidia"]) {
     const p = PROVIDERS[id];
     if (p && env[p.key]) return openAiCompatible({ base: p.base, apiKey: env[p.key]!, model: model || p.model, name: p.name });
   }
@@ -74,6 +75,7 @@ export function parseArgs(raw: unknown): Record<string, unknown> {
   }
 }
 
+const extras = (c: any) => Object.fromEntries(Object.entries(c ?? {}).filter(([k]) => !["id", "type", "function", "index"].includes(k)));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 class Retryable extends Error {
   constructor(message: string, readonly wait = 0) {
@@ -137,14 +139,14 @@ export function openAiCompatible(o: { base: string; apiKey: string; model: strin
       });
       const choice = data.choices[0];
       const msg = choice.message ?? {};
-      const calls: ToolCall[] = (msg.tool_calls ?? [])
-        .filter((c: any) => c?.function?.name)
-        .map((c: any, i: number) => ({ id: c.id || `call_${Date.now().toString(36)}_${i}`, name: c.function.name, args: parseArgs(c.function.arguments) }));
+      const raw = (msg.tool_calls ?? []).filter((c: any) => c?.function?.name);
+      const calls: ToolCall[] = raw.map((c: any, i: number) => ({ id: c.id || `call_${Date.now().toString(36)}_${i}`, name: c.function.name, args: parseArgs(c.function.arguments) }));
       const text = stripThinking(typeof msg.content === "string" ? msg.content : "");
       const message: Msg = {
         role: "assistant",
         content: text || null,
-        ...(calls.length ? { tool_calls: calls.map((c) => ({ id: c.id, type: "function" as const, function: { name: c.name, arguments: JSON.stringify(c.args) } })) } : {}),
+        // Provider extras on each call (Gemini's thought signatures) must go back unchanged on the next turn.
+        ...(calls.length ? { tool_calls: calls.map((c, i) => ({ ...extras(raw[i]), id: c.id, type: "function" as const, function: { name: c.name, arguments: JSON.stringify(c.args) } })) } : {}),
         // OpenRouter asks for reasoning to be sent back unchanged so reasoning models keep their chain across tool calls.
         ...(msg.reasoning_details ? { reasoning_details: msg.reasoning_details } : {}),
       };
