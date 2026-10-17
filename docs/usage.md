@@ -10,7 +10,9 @@ Four ways in: the web app, the CLI (and CI), the MCP server, and the HTTP API. A
 
 ```bash
 pnpm scan path/to/package-lock.json
-pnpm scan https://github.com/owner/repo
+pnpm scan https://github.com/owner/repo                     # finds lockfiles in subfolders too
+pnpm scan https://github.com/owner/repo/tree/main/apps/web  # a folder in a monorepo
+pnpm scan package-lock.json --fix                           # the fix plan
 pnpm scan chalk-2025 --ask "What if qix is phished?"
 pnpm scan uv.lock --org payments --fail-on malware --sarif taintgraph.sarif
 pnpm scan pnpm-lock.yaml --json > summary.json
@@ -23,6 +25,7 @@ pnpm scan pnpm-lock.yaml --json > summary.json
 | `--fail-on <level>` | exit 1 if an open finding is at or above `malware`, `critical`, `high` or `medium` |
 | `--json` | print the project summary as JSON |
 | `--sarif <file>` | write SARIF 2.1.0 for GitHub code scanning |
+| `--fix` | print the fix plan: safe versions, the `overrides` block or `uv` command, incident steps |
 
 Exit codes: `0` ok, `1` findings at or above `--fail-on`, `2` the scan couldn't run.
 
@@ -76,7 +79,7 @@ Lets a coding agent check a lockfile before it changes one:
 | `scan` | scan a local lockfile or MCP config by path, or a sample |
 | `list_projects` | projects in the workspace with their verdicts |
 | `ask` | ask the Analyst; returns the answer and its steps |
-| `explain_package`, `trace_exposures`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints` | the Analyst's graph tools, one-to-one |
+| `explain_package`, `trace_exposures`, `fix_plan`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints` | the Analyst's graph tools, one-to-one |
 | `record_verdict` | record a decision. An agent can confirm malware but cannot dismiss or accept it; only a person can, in the web app |
 
 ## HTTP API
@@ -94,6 +97,7 @@ JSON everywhere; the workspace comes from the `x-taintgraph-org` header (default
 | GET | `/api/projects/:id/accounts` | top 25 accounts by reach |
 | POST | `/api/projects/:id/simulate` | body `{ login, waves? }`; worm waves |
 | POST | `/api/projects/:id/ask` | body `{ question }`; streams `started`, `step`…, `answer`, `done` |
+| GET | `/api/projects/:id/fix` | fix plan: items, npm/pnpm/yarn overrides, Python commands, incident steps |
 | GET | `/api/projects/:id/report` | `{ markdown }` |
 | GET | `/api/investigations/:id` | a past investigation with steps and evidence |
 | POST | `/api/findings/:id/verdict` | body `{ verdict: confirmed \| dismissed \| accepted, note? }`; may return `proposedRule` |
@@ -115,7 +119,9 @@ curl -N -X POST localhost:8787/api/projects/<id>/ask -H 'content-type: applicati
 |---|---|---|
 | `FALKORDB_URL` | `redis://localhost:6380` | FalkorDB connection |
 | `PORT` | `8787` | HTTP port |
-| `OPENROUTER_API_KEY` / `NVIDIA_API_KEY` / `ANTHROPIC_API_KEY` | | turns on the LLM Analyst (first one set wins) |
+| `GEMINI_API_KEY` / `OPENROUTER_API_KEY` / `NVIDIA_API_KEY` / `ANTHROPIC_API_KEY` | | turns on the LLM Analyst (checked in that order) |
+| `GITHUB_TOKEN` | | optional; raises GitHub's rate limit for repository scans (60 an hour without it) |
+| `TAINTGRAPH_SEED` | off | `1` scans the samples into an empty `demo` workspace on start |
 | `LLM_MODEL` | per provider | override the model |
 | `LLM_PROVIDER=openai`, `LLM_BASE_URL`, `LLM_API_KEY` | | any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio) |
 | `TAINTGRAPH_AUTO_LLM` | off | use the model for scan-triggered investigations too |

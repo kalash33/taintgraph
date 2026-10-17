@@ -39,6 +39,7 @@ The Analyst follows the event guide on agents that reason over a graph.
 | `project_overview` | verdict and open findings with routes |
 | `trace_exposures` | every advisory-hit version, malware first, with its route and the version that fixes all of its advisories |
 | `explain_package` | one package: versions, routes, advisories, publishers, maintainers, install scripts, earlier verdicts |
+| `fix_plan` | the fix: a safe version for every compromised, tampered or high-severity version (re-checked on OSV.dev), overrides vs. direct upgrades, and incident steps |
 | `top_accounts` | the accounts that can publish the most of the tree, by PageRank weight |
 | `simulate_worm` | wave-by-wave spread from one account |
 | `mcp_servers` | MCP servers, pinning, and advisories anywhere under them |
@@ -68,17 +69,25 @@ The Analyst follows the event guide on agents that reason over a graph.
 |---|---|---|
 | Picks tools by | keywords, names found in the graph, dates | function calling |
 | Writes the answer | from tool summaries | in its own words, then checked |
-| Needs a key | no | OpenRouter, NVIDIA, Anthropic, or any OpenAI-compatible endpoint |
+| Needs a key | no | Gemini, OpenRouter, NVIDIA, Anthropic, or any OpenAI-compatible endpoint |
 
 The LLM client ([`agents/llm.ts`](../server/src/agents/llm.ts)) handles what real providers do:
 - retries on 429 (with Retry-After), 5xx, network errors, and 200 responses that carry an error body
 - accepts tool arguments as JSON strings, objects or broken JSON
 - fills in missing call ids, strips `<think>` blocks and non-breaking hyphens
-- keeps OpenRouter's `reasoning_details` across turns
+- keeps OpenRouter's `reasoning_details` and Gemini's thought signatures across turns
 
 A model that times out or fails mid-investigation hands over to the built-in investigator, which finishes from the graph.
 
-Tested on NVIDIA build: `nvidia/nemotron-3-super-120b-a12b` (the default) answers typical questions in about 7 seconds with checked answers.
+Tested on a three-part question ("how does the malicious litellm reach us, who could push a poisoned dspy, and what should we change?"):
+
+| Model | Tools used | Answer check | Time |
+|---|---|---|---|
+| `gemini-3.5-flash` (default with `GEMINI_API_KEY`) | 7 | passed | 12 s |
+| `gemini-3.1-pro-preview` | 4 | passed | 31 s |
+| `gemini-2.5-pro` | 4 | passed | 16 s |
+| `nvidia/nemotron-3-super-120b-a12b` (default with `NVIDIA_API_KEY`) | 2 to 3 | passed | 7 s |
+| `gemini-3.8-flash` | 4 | rebuilt: named a package the graph didn't return | 15 s |
 
 ## Memory
 

@@ -69,6 +69,15 @@ Those are graph questions. Taintgraph loads the lockfile into FalkorDB: every in
 
 </td>
 </tr>
+<tr>
+<td colspan="2" valign="top">
+
+**Plans the fix.** For every compromised, tampered or high-severity version: the version to move to (the release before a malicious one, or the version that fixes every advisory), re-checked against OSV.dev so it never recommends another bad release. You get a paste-ready `overrides` block for npm, pnpm or yarn, or a `uv lock` command, plus incident-response steps when malware was installed.
+
+<img src="docs/screenshots/fix.png" alt="Fix plan: six malware packages pinned back to their previous releases, CVE upgrades, an npm overrides block and incident steps" />
+
+</td>
+</tr>
 </table>
 
 It also flags tampered releases that no advisory covers yet:
@@ -116,6 +125,7 @@ Taintgraph doesn't try to out-detect commercial scanners. Socket, Snyk and Aikid
 | Worm simulation from one account, wave by wave | | | ✅ |
 | Release tampering without an advisory (takeover, provenance, removed) | | | ✅ |
 | npm, PyPI and AI-tool MCP configs in one graph | | partial | ✅ |
+| A fix plan with re-checked safe versions | `npm audit fix` | | ✅ |
 | Agent that answers questions and shows its queries | | | ✅ |
 | Memory of your verdicts that changes the next scan | | | ✅ |
 
@@ -125,7 +135,7 @@ You need Docker. No API key is required.
 
 ```bash
 git clone https://github.com/kalash33/taintgraph && cd taintgraph
-cp .env.example .env              # optional: add an NVIDIA or OpenRouter key
+cp .env.example .env              # optional: add a Gemini, NVIDIA or OpenRouter key
 docker compose up --build
 ```
 
@@ -138,7 +148,7 @@ Open http://localhost:8787 and click **chalk and debug, September 2025**: a real
 docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
 pnpm install
 pnpm build && pnpm start          # http://localhost:8787
-pnpm test                         # 59 tests: unit, integration, real incidents
+pnpm test                         # 65 tests: unit, integration, real incidents
 ```
 </details>
 
@@ -147,6 +157,7 @@ pnpm test                         # 59 tests: unit, integration, real incidents
 Without a key, a built-in investigator answers with the same tools. With one, answers read naturally and are still checked against the graph.
 
 ```bash
+GEMINI_API_KEY=...                # Google AI Studio; default model gemini-3.5-flash
 NVIDIA_API_KEY=nvapi-...          # build.nvidia.com; default model nvidia/nemotron-3-super-120b-a12b
 OPENROUTER_API_KEY=sk-or-...      # default model openai/gpt-oss-120b
 ANTHROPIC_API_KEY=sk-ant-...
@@ -157,7 +168,8 @@ LLM_PROVIDER=openai LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=qwen3:32b  
 
 ```bash
 pnpm scan package-lock.json                                  # any lockfile or MCP config
-pnpm scan https://github.com/owner/repo                      # a public repository
+pnpm scan https://github.com/owner/repo                      # a public repo; finds lockfiles in subfolders
+pnpm scan package-lock.json --fix                            # the fix plan: safe versions + overrides
 pnpm scan uv.lock --fail-on malware --sarif taintgraph.sarif   # CI gate + GitHub code scanning
 pnpm scan chalk-2025 --ask "What if qix is phished?"         # ask the Analyst from the terminal
 ```
@@ -186,7 +198,7 @@ flowchart LR
 ```
 
 - **Scout** parses the input, pulls advisories and registry history, writes the graph, runs PageRank and triages.
-- **Analyst** answers questions with ten fixed tools over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
+- **Analyst** answers questions with eleven fixed tools over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
 - **Reporter** writes an incident report you can forward.
 - **Sentinel** re-checks every version any project ever installed against OSV, so an advisory published today finds the app that installed the package last month.
 

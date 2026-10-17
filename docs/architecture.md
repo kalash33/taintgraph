@@ -60,6 +60,8 @@ Inside one workspace, projects share package and version nodes (that is how a ve
 | `server/src/ingest/scout.ts` | The Scout: parse → enrich → write → rank → triage → hand off |
 | `server/src/analysis.ts` | Project tree, triage, accounts, worm simulation, UI graph, summaries |
 | `server/src/agents/` | Analyst (`analyst.ts`, `tools.ts`, `llm.ts`), Reporter, Sentinel, task workers |
+| `server/src/ingest/github.ts` | Finds a lockfile or MCP config anywhere in a public GitHub repo |
+| `server/src/fix.ts` | The fix plan: safe target versions, re-checked on OSV, as overrides and commands |
 | `server/src/memory.ts` | Verdicts, rule learning, the memory view |
 | `server/src/index.ts` | Fastify API (REST + server-sent events) and the built web app |
 | `server/src/mcp.ts` | MCP server over stdio |
