@@ -1,3 +1,4 @@
+import pLimit from "p-limit";
 import { createHash } from "node:crypto";
 import { config } from "../config.ts";
 import { redis } from "../db.ts";
@@ -262,8 +263,10 @@ const normKey = (eco: Ecosystem, n: string) => (eco === "PyPI" ? n.toLowerCase()
 /** Names the index doesn't know get zeros (obscure); names from a chunk that failed are left out (unknown). */
 export async function reach(eco: Ecosystem, names: string[]): Promise<Map<string, { dependents: number; downloads: number }>> {
   const out = new Map<string, { dependents: number; downloads: number }>();
-  for (let i = 0; i < names.length; i += 100) {
-    const chunk = names.slice(i, i + 100);
+  // Chunks of 100 names, four requests at a time (one at a time took about 5 s per chunk on large lockfiles).
+  const chunks = Array.from({ length: Math.ceil(names.length / 100) }, (_, i) => names.slice(i * 100, i * 100 + 100));
+  const limit = pLimit(4);
+  await Promise.all(chunks.map((chunk) => limit(async () => {
     try {
       const rows = await cached<any[]>("https://packages.ecosyste.ms/api/v1/packages/bulk_lookup", { method: "POST", ttl: 24 * HOUR, body: { purls: chunk.map((n) => purl(eco, n)) } });
       for (const n of chunk) out.set(normKey(eco, n), { dependents: 0, downloads: 0 });
@@ -271,7 +274,7 @@ export async function reach(eco: Ecosystem, names: string[]): Promise<Map<string
     } catch (e: any) {
       console.warn(`[ecosyste.ms] reach lookup failed for ${chunk.length} names:`, e.message);
     }
-  }
+  })));
   return out;
 }
 
