@@ -163,3 +163,30 @@ test("unreadable input gets a helpful message", () => {
   assert.throws(() => parseInput("notes.txt", "hello"), /No pinned packages/);
   assert.throws(() => parseInput("bun.lockb", "\0"), /binary/);
 });
+
+test("uv.lock: packages from git, a URL or another index aren't treated as PyPI packages", () => {
+  const lock = `version = 1
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [{ name = "requests" }, { name = "torch" }, { name = "mylib" }]
+
+[[package]]
+name = "requests"
+version = "2.32.3"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "torch"
+version = "2.5.1+cpu"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+
+[[package]]
+name = "mylib"
+version = "1.0.0"
+source = { git = "https://github.com/acme/mylib?rev=abc#abc" }
+`;
+  const r = parseInput("uv.lock", lock);
+  assert.deepEqual([...r.packages.values()].map((x) => x.key), ["pypi/requests@2.32.3"]);
+});

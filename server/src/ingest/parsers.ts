@@ -311,6 +311,9 @@ function bunLock(content: string, filename: string): Parsed {
 }
 
 // ───────────── uv.lock ─────────────
+const fromPypi = (src: any) =>
+  src.registry ? /^https:\/\/(pypi\.org|files\.pythonhosted\.org)\//.test(String(src.registry)) : !(src.git || src.url || src.path);
+
 function uvLock(content: string, filename: string): Parsed {
   const lock: any = parseToml(content);
   const b = new Builder("PyPI");
@@ -327,6 +330,7 @@ function uvLock(content: string, filename: string): Parsed {
       roots.push(...deps.map((d) => ({ d, dev: false })), ...Object.values<any>(pkg["dev-dependencies"] ?? {}).flatMap(list).map((d) => ({ d, dev: true })));
       continue;
     }
+    if (!fromPypi(src)) continue;
     const p = b.add(String(pkg.name), String(pkg.version ?? ""));
     if (!p) continue;
     byName.set(p.name, [...(byName.get(p.name) ?? []), p]);
@@ -349,6 +353,8 @@ function poetryLock(content: string, filename: string): Parsed {
   const byName = new Map<string, Pkg>();
   const pkgs: { p: Pkg; deps: string[] }[] = [];
   for (const pkg of lock.package ?? []) {
+    // Packages from git, a URL, a folder or a private index (legacy source) aren't on PyPI.
+    if (pkg.source?.type && pkg.source.type !== "pypi") continue;
     const p = b.add(String(pkg.name), String(pkg.version));
     if (!p) continue;
     byName.set(p.name, p);
