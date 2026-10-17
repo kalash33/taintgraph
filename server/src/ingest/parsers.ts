@@ -1,4 +1,4 @@
-import { parse as parseYaml } from "yaml";
+import { parse as parseYaml, parseAllDocuments } from "yaml";
 import { parse as parseToml } from "smol-toml";
 import type { Ecosystem } from "../types.ts";
 
@@ -178,8 +178,18 @@ export function pnpmResolve(dep: string, raw: string): { name: string; version: 
   return { name: dep, version: v };
 }
 
+/** pnpm 11+ writes two YAML documents: the package manager's own lockfile first, then the project's. Use the largest. */
+function pnpmDocument(content: string): any {
+  const docs = parseAllDocuments(content, { maxAliasCount: 1000 } as any);
+  const list = (Array.isArray(docs) ? docs : [docs]).map((d: any) => d.toJS({ maxAliasCount: 1000 })).filter((d: any) => d && typeof d === "object");
+  // The project document declares dependencies; the package manager one only pins pnpm itself.
+  const project = (d: any) => Object.values<any>(d.importers ?? {}).some((i) => i?.dependencies || i?.devDependencies || i?.optionalDependencies);
+  const size = (d: any) => Object.keys(d.snapshots ?? d.packages ?? {}).length;
+  return list.sort((a, b) => Number(project(b)) - Number(project(a)) || size(b) - size(a))[0];
+}
+
 function pnpmLock(content: string, filename: string): Parsed {
-  const lock: any = parseYaml(content, { maxAliasCount: 1000 });
+  const lock: any = pnpmDocument(content);
   if (parseFloat(String(lock?.lockfileVersion ?? 0)) < 9) throw new Error(`pnpm-lock.yaml v${lock?.lockfileVersion} isn't supported yet (pnpm 9+ writes v9).`);
   const b = new Builder("npm");
   for (const id of Object.keys(lock.packages ?? {})) {

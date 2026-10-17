@@ -190,3 +190,14 @@ source = { git = "https://github.com/acme/mylib?rev=abc#abc" }
   const r = parseInput("uv.lock", lock);
   assert.deepEqual([...r.packages.values()].map((x) => x.key), ["pypi/requests@2.32.3"]);
 });
+
+test("pnpm 11+: a lockfile with two YAML documents uses the project document, not the package manager one", () => {
+  const lock = [
+    "---", "lockfileVersion: '9.0'", "importers:", "  .:", "    packageManagerDependencies:", "      pnpm:", "        specifier: 12.11.2", "        version: 12.11.2",
+    "packages:", "  pnpm@12.11.2:", "    resolution: {integrity: sha512-x}", "snapshots:", "  pnpm@12.11.2: {}",
+    "---", "lockfileVersion: '9.0'", "importers:", "  .:", "    dependencies:", "      chalk:", "        specifier: 5.6.1", "        version: 5.6.1",
+    "packages:", "  chalk@5.6.1:", "    resolution: {integrity: sha512-y}", "snapshots:", "  chalk@5.6.1: {}", "",
+  ].join("\n");
+  const r = parseInput("pnpm-lock.yaml", lock);
+  assert.deepEqual([...r.packages.values()].map((x) => x.key), ["npm/chalk@5.6.1"]);
+});
