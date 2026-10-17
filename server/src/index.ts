@@ -7,7 +7,7 @@ import { isValidOrg, ping } from "./db.ts";
 import { accounts, dependencyGraph, getProject, listProjects, simulateWorm, summary, teams } from "./analysis.ts";
 import { scan } from "./ingest/scout.ts";
 import { githubFile } from "./ingest/github.ts";
-import { loadSample, SAMPLES } from "./samples.ts";
+import { loadSample, SAMPLES, scanSample } from "./samples.ts";
 import { getInvestigation, investigate } from "./agents/analyst.ts";
 import { llmFromEnv } from "./agents/llm.ts";
 import { getReport } from "./agents/reporter.ts";
@@ -98,7 +98,7 @@ app.post("/api/scan", { preHandler: limit("scan") }, async (req, reply) => {
       out.send({ type: "progress", stage: "Reading", message: `Scanning ${found.path}${found.others.length ? ` (also found ${found.others.slice(0, 3).join(", ")}${found.others.length > 3 ? ", …" : ""}; link to a folder to scan another)` : ""}`, pct: 2 });
       input = found;
     }
-    const projectId = await scan(o, input, (e) => out.send(e));
+    const projectId = s ? await scanSample(o, s, (e) => out.send(e)) : await scan(o, input, (e) => out.send(e));
     out.send({ type: "done", projectId });
   } catch (e: any) {
     if (!e?.statusCode) req.log.warn(e);

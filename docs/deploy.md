@@ -10,7 +10,7 @@ cp .env.example .env     # optional model key
 docker compose up -d --build
 ```
 
-The app listens on `127.0.0.1:8787`; put a reverse proxy with TLS in front of it and set `TRUST_PROXY=1`. On first start, `TAINTGRAPH_SEED=1` scans the six samples into the `demo` workspace (about 2–3 minutes with a cold cache; the app is usable meanwhile).
+The app listens on `127.0.0.1:8787`; put a reverse proxy with TLS in front of it and set `TRUST_PROXY=1`. On first start, `TAINTGRAPH_SEED=1` scans the seven samples into the `demo` workspace (about 2–3 minutes with a cold cache; the app is usable meanwhile).
 
 ## Railway
 

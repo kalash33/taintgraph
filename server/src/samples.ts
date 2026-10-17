@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "./config.ts";
-import type { Sample } from "./types.ts";
+import type { Sample, ScanEvent } from "./types.ts";
+import { scan } from "./ingest/scout.ts";
 
-export const SAMPLES: (Sample & { name: string })[] = [
+export const SAMPLES: (Sample & { name: string; before?: string })[] = [
   {
     id: "chalk-2025",
     title: "chalk and debug, September 2025",
@@ -46,10 +47,28 @@ export const SAMPLES: (Sample & { name: string })[] = [
     filename: "claude-code.mcp.json",
     name: "Claude Code MCP setup",
   },
+  {
+    id: "lockfile-update",
+    title: "A lockfile update that pulls in malware",
+    description: "A small app scanned before and after a routine dependency bump on September 8, 2025 (reconstructed): chalk 5.6.0 → 5.6.1 and a new is@3.3.1. Shows what changed since the last scan, and what the update brought in.",
+    filename: "web-shop-after.package-lock.json",
+    name: "web-shop",
+    before: "web-shop-before.package-lock.json",
+  },
 ];
 
 export function loadSample(id: string) {
   const s = SAMPLES.find((x) => x.id === id);
   if (!s) throw Object.assign(new Error(`Unknown sample "${id}".`), { statusCode: 404 });
   return { filename: s.filename, content: readFileSync(join(paths.fixtures, s.filename), "utf8"), name: s.name };
+}
+
+/** Scan a sample. A sample with a "before" lockfile is scanned twice, so the project has history to compare. */
+export async function scanSample(org: string, id: string, emit: (e: ScanEvent) => void = () => {}): Promise<string> {
+  const s = SAMPLES.find((x) => x.id === id);
+  if (s?.before) {
+    emit({ type: "progress", stage: "Reading", message: "Scanning the lockfile from before the update first", pct: 1 });
+    await scan(org, { filename: "package-lock.json", content: readFileSync(join(paths.fixtures, s.before), "utf8"), name: s.name });
+  }
+  return scan(org, loadSample(id), emit);
 }

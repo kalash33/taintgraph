@@ -152,7 +152,7 @@ Open http://localhost:8787 and click **chalk and debug, September 2025**: a real
 docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
 pnpm install
 pnpm build && pnpm start          # http://localhost:8787
-pnpm test                         # 75 tests: unit, integration, real incidents
+pnpm test                         # 79 tests: unit, integration, real incidents
 ```
 </details>
 

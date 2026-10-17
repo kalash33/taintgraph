@@ -269,4 +269,13 @@ describe("graph, agents and memory", opts, () => {
     assert.ok(team.flagged, "the team that can publish chalk@5.6.1 is flagged");
     assert.ok(r.network.accounts > 10 && r.network.accounts <= r.network.totalAccounts);
   });
+
+  test("the lockfile-update sample is scanned before and after, so the changes show", async () => {
+    const { scanSample } = await import("../src/samples.ts");
+    const { scanChanges } = await import("../src/changes.ts");
+    const id = await scanSample(ORG, "lockfile-update");
+    const d = await scanChanges(ORG, id);
+    assert.deepEqual(d.changed, [{ name: "chalk", from: ["5.6.0"], to: ["5.6.1"] }]);
+    assert.deepEqual(d.newlyFlagged.map((f) => `${f.name}@${f.version}`).sort(), ["chalk@5.6.1", "is@3.3.1"]);
+  });
 });

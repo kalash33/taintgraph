@@ -4,7 +4,7 @@ import { config } from "./config.ts";
 import { short, summary } from "./analysis.ts";
 import { scan } from "./ingest/scout.ts";
 import { githubFile } from "./ingest/github.ts";
-import { loadSample, SAMPLES } from "./samples.ts";
+import { loadSample, SAMPLES, scanSample } from "./samples.ts";
 import { COMPROMISE, type FindingView, type ProjectSummary, type Severity } from "./types.ts";
 
 const HELP = `Usage: pnpm scan <lockfile | MCP config | GitHub URL | sample> [options]
@@ -55,7 +55,8 @@ try {
       : { filename: basename(target), content: readFileSync(target, "utf8") };
   file = SAMPLES.some((x) => x.id === target) ? `fixtures/${input.filename}` : target;
   const t0 = Date.now();
-  const id = await scan(org, input, (e) => e.type === "progress" && say(`[${String(e.pct).padStart(3)}%] ${e.stage}: ${e.message}`));
+  const progress = (e: any) => e.type === "progress" && say(`[${String(e.pct).padStart(3)}%] ${e.stage}: ${e.message}`);
+  const id = SAMPLES.some((x) => x.id === target) ? await scanSample(org, target, progress) : await scan(org, input, progress);
   s = await summary(org, id);
   say(`\n${s.name}: ${s.verdict.toUpperCase()} in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   say(`${s.counts.packages} versions, ${s.counts.edges} edges, ${s.counts.accounts} accounts, ${s.counts.advisories} advisories`);
