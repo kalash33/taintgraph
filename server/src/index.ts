@@ -125,15 +125,16 @@ app.post<{ Params: { id: string }; Body: { login?: unknown; waves?: unknown } }>
   const waves = Math.min(6, Math.max(1, Number(req.body?.waves) || 4));
   return simulateWorm(o, await getProject(o, req.params.id), login, waves);
 });
-app.post<{ Params: { id: string }; Body: { question?: unknown } }>("/api/projects/:id/ask", { preHandler: limit("ask") }, async (req, reply) => {
+app.post<{ Params: { id: string }; Body: { question?: unknown; followUp?: unknown } }>("/api/projects/:id/ask", { preHandler: limit("ask") }, async (req, reply) => {
   const o = org(req);
   const question = typeof req.body?.question === "string" ? req.body.question.trim() : "";
   if (!question) throw bad("Send { question }.");
   if (question.length > 500) throw bad("Keep the question under 500 characters.");
+  const followUp = typeof req.body?.followUp === "string" && /^inv-[a-z0-9]{8}$/.test(req.body.followUp) ? req.body.followUp : undefined;
   await getProject(o, req.params.id); // 404 before the stream opens
   const out = sse(reply);
   try {
-    await investigate(o, req.params.id, question, (e) => out.send(e));
+    await investigate(o, req.params.id, question, (e) => out.send(e), { followUp });
   } catch (e: any) {
     req.log.warn(e);
     out.send({ type: "error", message: e?.statusCode ? e.message : "The investigation failed on the server." });

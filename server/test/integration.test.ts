@@ -232,4 +232,32 @@ describe("graph, agents and memory", opts, () => {
       await run(ORG, "MATCH (p:Project {id: $id}) SET p.latest_scan = p.triaged_scan", { id: chalk });
     }
   });
+
+  test("under concurrency every task is claimed by exactly one worker", async () => {
+    const { createTask, claimTask, finishTask } = await import("../src/agents/tasks.ts");
+    await drain(ORG); // start from an empty queue
+    const ids = await Promise.all(Array.from({ length: 40 }, () => createTask(ORG, chalk, "report", "reporter", { test: true })));
+    const claimed: string[] = [];
+    await Promise.all(
+      Array.from({ length: 8 }, async (_, w) => {
+        for (let t = await claimTask(ORG, "reporter", `race-${w}`); t; t = await claimTask(ORG, "reporter", `race-${w}`)) {
+          claimed.push(t.id);
+          await finishTask(ORG, t.id, "done", "race test");
+        }
+      }),
+    );
+    assert.equal(new Set(claimed).size, claimed.length, "no task claimed twice");
+    assert.deepEqual([...claimed].sort(), [...ids].sort(), "every task claimed");
+  });
+
+  test("a follow-up question continues the conversation", async () => {
+    const first = await investigate(ORG, chalk, "Is chalk compromised?", () => {}, { llm: null });
+    const steps: string[] = [];
+    let answer = "";
+    const second = await investigate(ORG, chalk, "Who publishes it?", (e) => { if (e.type === "step") steps.push(e.step.tool); if (e.type === "answer") answer = e.text; }, { llm: null, followUp: first });
+    const { getInvestigation } = await import("../src/agents/analyst.ts");
+    assert.equal((await getInvestigation(ORG, second)).followsId, first);
+    assert.ok(steps.includes("explain_package"), steps.join(","));
+    assert.match(answer, /chalk/);
+  });
 });

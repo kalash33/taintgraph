@@ -51,6 +51,7 @@ graph LR
   Investigation -- ABOUT_PROJECT --> Project
   Investigation -- HAS_STEP --> Step
   Step -- NEXT --> Step
+  Investigation -- FOLLOWS --> Investigation
   Investigation -- CONCLUDED --> Finding
   Rule -- LEARNED_FROM --> Finding
   Task -- FOR_PROJECT --> Project

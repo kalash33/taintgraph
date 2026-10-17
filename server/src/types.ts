@@ -151,6 +151,7 @@ export interface InvestigationView {
   startedAt: number;
   steps: StepView[];
   evidence: Evidence;
+  followsId?: string; // the investigation this one follows up on, in the same conversation
 }
 
 export interface RuleView {
@@ -251,7 +252,7 @@ GET  /api/projects/:id                        -> ProjectSummary
 GET  /api/projects/:id/graph                  -> DependencyGraph
 GET  /api/projects/:id/accounts               -> AccountView[] (top 25)
 POST /api/projects/:id/simulate { login, waves? }   -> WormResult
-POST /api/projects/:id/ask { question }       -> text/event-stream of InvestigateEvent
+POST /api/projects/:id/ask { question, followUp? }  -> text/event-stream of InvestigateEvent (followUp: an investigation id to continue)
 GET  /api/projects/:id/report                 -> { markdown }
 GET  /api/projects/:id/fix                    -> FixPlan
 GET  /api/projects/:id/changes                -> ScanChanges

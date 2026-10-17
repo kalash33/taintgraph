@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Evidence, InvestigateEvent, Outcome, ProjectSummary, StepView } from "@api/types";
+import type { Evidence, InvestigateEvent, Outcome, ProjectSummary, StepView, InvestigationView } from "@api/types";
 import { api, cleanMessage, compareFindings, findingGroup, OUTCOME_LABEL, toApiError } from "../api";
 import { href } from "../App";
 import EvidenceGraph, { mergeEvidence, type FlagMap } from "./EvidenceGraph";
@@ -85,6 +85,7 @@ export default function Ask({ id, investigationId }: { id: string; investigation
   const [question, setQuestion] = useState("");
   const [deepError, setDeepError] = useState<unknown>(null);
   const [announce, setAnnounce] = useState("");
+  const [thread, setThread] = useState(true); // follow-ups continue the conversation
   const abortRef = useRef<AbortController | null>(null);
   const logEnd = useRef<HTMLDivElement>(null);
 
@@ -105,9 +106,13 @@ export default function Ask({ id, investigationId }: { id: string; investigation
   const loadDeep = useCallback(() => {
     if (!investigationId) return;
     setDeepError(null);
-    api.investigation(investigationId).then(
-      (inv) => {
-        const t: Turn = {
+    const chain = async (id: string, depth: number): Promise<InvestigationView[]> => {
+      const inv = await api.investigation(id);
+      return inv.followsId && depth < 4 ? [...(await chain(inv.followsId, depth + 1).catch(() => [])), inv] : [inv];
+    };
+    chain(investigationId, 0).then(
+      (invs) => {
+        const toTurn = (inv: InvestigationView): Turn => ({
           key: inv.id,
           question: inv.question,
           investigationId: inv.id,
@@ -119,9 +124,10 @@ export default function Ask({ id, investigationId }: { id: string; investigation
           evidence: inv.evidence,
           status: inv.status === "running" ? "running" : inv.status,
           error: inv.status === "error" ? "This investigation stopped before it finished." : undefined,
-        };
-        setTurns((ts) => [t, ...ts.filter((x) => x.key !== t.key)]);
-        setActive(t.key);
+        });
+        const loaded = invs.map(toTurn);
+        setTurns((ts) => [...loaded, ...ts.filter((x) => !loaded.some((l) => l.key === x.key))]);
+        setActive(loaded[loaded.length - 1].key);
       },
       setDeepError,
     );
@@ -140,6 +146,7 @@ export default function Ask({ id, investigationId }: { id: string; investigation
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     const key = `local-${Date.now()}`;
+    const previous = thread ? [...turns].reverse().find((t) => t.status === "done" && t.investigationId)?.investigationId : undefined;
     setTurns((ts) => [...ts, { key, question: text, steps: [], status: "running" }]);
     setActive(key);
     setQuestion("");
@@ -171,7 +178,7 @@ export default function Ask({ id, investigationId }: { id: string; investigation
       }
     };
     try {
-      await api.ask(id, text, onEvent, ctrl.signal);
+      await api.ask(id, text, onEvent, ctrl.signal, previous);
       if (!finished && !ctrl.signal.aborted) {
         update(key, (t) => (t.answer ? { ...t, status: "done" } : { ...t, status: "error", error: "The server closed the connection before answering." }));
       }
@@ -319,6 +326,12 @@ export default function Ask({ id, investigationId }: { id: string; investigation
                 {running ? "Working…" : "Ask"}
               </button>
             </div>
+            {turns.some((t) => t.status === "done") && (
+              <label className="thread-toggle small">
+                <input type="checkbox" checked={thread} onChange={(e) => setThread(e.target.checked)} /> Continue this conversation (the agent remembers the
+                earlier questions, so you can ask "what about its maintainers?")
+              </label>
+            )}
           </form>
         </section>
 

@@ -210,8 +210,8 @@ export const api = {
   activateRule: (ruleId: string) => postJSON<{ ok: boolean }>(`/api/rules/${enc(ruleId)}/activate`, {}),
   sentinel: () => postJSON<SentinelResult>("/api/sentinel", {}),
   scan: (req: ScanRequest, onEvent: (e: ScanEvent) => void, signal?: AbortSignal) => streamSSE<ScanEvent>("/api/scan", req, onEvent, signal),
-  ask: (id: string, question: string, onEvent: (e: InvestigateEvent) => void, signal?: AbortSignal) =>
-    streamSSE<InvestigateEvent>(`/api/projects/${enc(id)}/ask`, { question }, onEvent, signal),
+  ask: (id: string, question: string, onEvent: (e: InvestigateEvent) => void, signal?: AbortSignal, followUp?: string) =>
+    streamSSE<InvestigateEvent>(`/api/projects/${enc(id)}/ask`, followUp ? { question, followUp } : { question }, onEvent, signal),
 };
 
 /* ---------- labels and helpers ---------- */

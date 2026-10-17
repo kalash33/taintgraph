@@ -96,7 +96,7 @@ JSON everywhere; the workspace comes from the `x-taintgraph-org` header (default
 | GET | `/api/projects/:id/graph` | dependency tree with infected edges, for drawing |
 | GET | `/api/projects/:id/accounts` | top 25 accounts by reach |
 | POST | `/api/projects/:id/simulate` | body `{ login, waves? }`; worm waves |
-| POST | `/api/projects/:id/ask` | body `{ question }`; streams `started`, `step`…, `answer`, `done` |
+| POST | `/api/projects/:id/ask` | body `{ question, followUp? }` (`followUp`: an investigation id, to continue that conversation); streams `started`, `step`…, `answer`, `done` |
 | GET | `/api/projects/:id/changes` | what changed since the previous scan, and which new versions are flagged |
 | GET | `/api/projects/:id/fix` | fix plan: items, npm/pnpm/yarn overrides, Python commands, incident steps |
 | GET | `/api/projects/:id/report` | `{ markdown }` |

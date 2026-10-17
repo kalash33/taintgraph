@@ -99,11 +99,13 @@ Tested on a three-part question ("how does the malicious litellm reach us, who c
 
 **Procedural.** After two matching verdicts for a signal (say, two typosquats marked *not a threat*), a Rule is proposed: `typosquat → skip`. It does nothing until a person activates it, and rules can never target compromise signals.
 
+**Conversations.** A follow-up question is linked to the one before it (`(:Investigation)-[:FOLLOWS]->(:Investigation)`). The agent gets the earlier questions and answers, so "who publishes it?" after "is chalk compromised?" knows what *it* is, and a link to any answer reopens the whole conversation.
+
 **Episodic.** Investigations and their conclusions are recalled at the start of every new one. Asking the same question again after the same scan returns the earlier answer, its evidence and a link to it, with no new queries.
 
 ## Coordination
 
-`task_claim` sets `status = 'claimed'` in a single query. FalkorDB applies writes to one graph one query at a time, so two workers can't claim the same task. Workers run every two seconds per workspace, reclaim tasks whose worker died, and give up after three attempts.
+`task_claim` sets `status = 'claimed'` in a single query. FalkorDB applies writes to one graph one query at a time, so two workers can't claim the same task; a test races 8 workers over 40 tasks and checks each is claimed exactly once. Workers run every two seconds per workspace, reclaim tasks whose worker died, and give up after three attempts.
 
 Automatic investigations triggered by scans use the built-in investigator unless `TAINTGRAPH_AUTO_LLM=1`, so scanning doesn't spend model credits.
 

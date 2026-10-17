@@ -2568,3 +2568,14 @@ tbody tr:last-child td {
 .changes details {
   margin-top: 8px;
 }
+
+.thread-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  color: var(--muted);
+}
+.thread-toggle input {
+  margin-top: 3px;
+}

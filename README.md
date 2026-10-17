@@ -150,7 +150,7 @@ Open http://localhost:8787 and click **chalk and debug, September 2025**: a real
 docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
 pnpm install
 pnpm build && pnpm start          # http://localhost:8787
-pnpm test                         # 67 tests: unit, integration, real incidents
+pnpm test                         # 74 tests: unit, integration, real incidents
 ```
 </details>
 
@@ -240,7 +240,7 @@ All 67 Cypher queries are plain files in [`queries/`](queries). They use `shorte
 Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB), entered in:
 
 - **Track 01: Agents That Act on Connected Data.** The Analyst answers from multi-hop paths, account reach and worm spread; the Sentinel acts on new advisories.
-- **Track 02: Agent Memory and Coordination.** Verdicts, investigations and learned rules live in the graph and change future triage. Agents coordinate only through Task nodes.
+- **Track 02: Agent Memory and Coordination.** Verdicts, conversations, investigations and learned rules live in the graph and change future triage. Agents coordinate only through Task nodes, and claims stay exclusive under concurrency.
 
 **AI disclosure.** Built during the event with an AI coding assistant (Claude Code). The idea and research were prepared before the event, as the rules allow; all code was written during it.
 

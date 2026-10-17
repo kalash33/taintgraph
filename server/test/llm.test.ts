@@ -79,3 +79,12 @@ test("provider extras on tool calls (Gemini thought signatures) are sent back un
   const r = await llm.chat([{ role: "user", content: "hi" }], []);
   assert.deepEqual((r.message as any).tool_calls[0].extra_content, sig);
 });
+
+test("a name@version claim holds when the results contain that package and that exact version", () => {
+  const corpus = "{\"package\":\"litellm@1.82.8\",\"to\":\"1.88.6\"} Fix plan: litellm@1.82.8 → 1.88.6; @tanstack/react-router@1.169.5 → 1.169.2";
+  assert.equal(validate("Upgrade litellm@1.88.6 now.", corpus).ok, true);
+  assert.equal(validate("Pin @tanstack/react-router@1.169.2.", corpus).ok, true);
+  assert.equal(validate("Upgrade litellm@1.99.0 now.", corpus).ok, false, "invented version");
+  assert.equal(validate("Use evil@1.88.6.", corpus).ok, false, "invented package");
+  assert.equal(validate("Upgrade lite@1.88.6", corpus).ok, false, "a prefix of a real name");
+});
