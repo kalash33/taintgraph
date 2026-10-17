@@ -77,7 +77,7 @@ export interface ProjectSummary {
   scanId: string;
   scannedAt: number;
   counts: { packages: number; direct: number; accounts: number; advisories: number; edges: number };
-  verdict: "compromised" | "suspicious" | "clean";
+  verdict: "compromised" | "suspicious" | "vulnerable" | "clean"; // suspicious = tampering signals; vulnerable = known high/critical CVEs only
   findings: FindingView[];
   topAccounts: AccountView[];
   mcpServers: McpServerView[];

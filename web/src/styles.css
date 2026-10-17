@@ -433,6 +433,12 @@ textarea {
   border-color: var(--silt);
 }
 
+.pill-vulnerable {
+  background: var(--river-soft);
+  color: var(--river-strong);
+  border-color: var(--river);
+}
+
 .pill-clean,
 .status-dismissed {
   background: var(--clear-soft);
@@ -1086,6 +1092,11 @@ textarea {
   border-left-color: var(--silt);
 }
 
+.verdict-vulnerable {
+  background: var(--river-soft);
+  border-left-color: var(--river);
+}
+
 .verdict-word {
   font-size: clamp(2rem, 4vw, 2.8rem);
   font-weight: 800;
@@ -1100,6 +1111,10 @@ textarea {
 
 .verdict-suspicious .verdict-word {
   color: var(--silt);
+}
+
+.verdict-vulnerable .verdict-word {
+  color: var(--river-strong);
 }
 
 .verdict-counts {

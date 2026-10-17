@@ -254,6 +254,7 @@ export const KIND_LABEL: Record<AccountView["kind"], string> = {
 export const VERDICT_LABEL: Record<ProjectSummary["verdict"], string> = {
   compromised: "Compromised",
   suspicious: "Suspicious",
+  vulnerable: "Vulnerable",
   clean: "Clean",
 };
 

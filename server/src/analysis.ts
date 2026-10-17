@@ -325,7 +325,8 @@ export async function loadFindings(org: string, p: ProjectRef): Promise<FindingV
 export function verdictOf(findings: FindingView[]): ProjectSummary["verdict"] {
   const live = findings.filter((f) => f.status === "open" || f.status === "confirmed");
   if (live.some((f) => COMPROMISE.includes(f.signal))) return "compromised";
-  if (live.some((f) => SUSPICIOUS.includes(f.signal) || (f.signal === "vulnerability" && SEV[f.severity] <= SEV.high))) return "suspicious";
+  if (live.some((f) => SUSPICIOUS.includes(f.signal))) return "suspicious";
+  if (live.some((f) => f.signal === "vulnerability" && SEV[f.severity] <= SEV.high)) return "vulnerable";
   return "clean";
 }
 
