@@ -6,7 +6,7 @@ import { config, paths } from "./config.ts";
 import { isValidOrg, ping } from "./db.ts";
 import { accounts, dependencyGraph, getProject, listProjects, simulateWorm, summary } from "./analysis.ts";
 import { scan } from "./ingest/scout.ts";
-import { githubLockfile } from "./ingest/feeds.ts";
+import { githubFile } from "./ingest/github.ts";
 import { loadSample, SAMPLES } from "./samples.ts";
 import { getInvestigation, investigate } from "./agents/analyst.ts";
 import { llmFromEnv } from "./agents/llm.ts";
@@ -89,7 +89,13 @@ app.post("/api/scan", { preHandler: limit("scan") }, async (req, reply) => {
   if (gh && !/^https:\/\/(www\.)?github\.com\/[\w.-]+\/[\w.-]+/.test(gh)) throw bad("Paste a GitHub repository URL like https://github.com/owner/repo");
   const out = sse(reply);
   try {
-    const input = s ? loadSample(s) : gh ? await githubLockfile(gh) : file!;
+    let input: { filename: string; content: string; name?: string } = s ? loadSample(s) : file!;
+    if (gh) {
+      out.send({ type: "progress", stage: "Reading", message: "Looking for lockfiles and MCP configs in the repository", pct: 1 });
+      const found = await githubFile(gh);
+      out.send({ type: "progress", stage: "Reading", message: `Scanning ${found.path}${found.others.length ? ` (also found ${found.others.slice(0, 3).join(", ")}${found.others.length > 3 ? ", …" : ""}; link to a folder to scan another)` : ""}`, pct: 2 });
+      input = found;
+    }
     const projectId = await scan(o, input, (e) => out.send(e));
     out.send({ type: "done", projectId });
   } catch (e: any) {

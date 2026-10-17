@@ -313,20 +313,3 @@ async function fetchTopPackages(eco: Ecosystem): Promise<Map<string, number>> {
 }
 
 // ───────────── GitHub: fetch a public repo's lockfile ─────────────
-const LOCKFILES = ["package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "uv.lock", "poetry.lock", "requirements.txt"];
-
-export async function githubLockfile(url: string): Promise<{ filename: string; content: string; name: string }> {
-  const m = url.match(/^https?:\/\/(?:www\.)?github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/);
-  if (!m) throw new Error("Paste a GitHub repository URL like https://github.com/owner/repo");
-  const [, owner, repo] = m;
-  const meta = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: UA, signal: AbortSignal.timeout(15_000) });
-  if (!meta.ok) throw new Error(`GitHub returned ${meta.status} for ${owner}/${repo}. Is the repository public?`);
-  const branch = ((await meta.json()) as any).default_branch ?? "main";
-  for (const filename of LOCKFILES) {
-    const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filename}`, { signal: AbortSignal.timeout(30_000) });
-    if (!res.ok) continue;
-    if (Number(res.headers.get("content-length") ?? 0) > 25 * 1024 * 1024) throw new Error(`${filename} in ${owner}/${repo} is larger than 25 MB.`);
-    return { filename, content: await res.text(), name: `${owner}/${repo}` };
-  }
-  throw new Error(`No supported lockfile (${LOCKFILES.join(", ")}) at the root of ${owner}/${repo}.`);
-}

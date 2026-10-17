@@ -3,7 +3,7 @@ import { basename } from "node:path";
 import { config } from "./config.ts";
 import { short, summary } from "./analysis.ts";
 import { scan } from "./ingest/scout.ts";
-import { githubLockfile } from "./ingest/feeds.ts";
+import { githubFile } from "./ingest/github.ts";
 import { loadSample, SAMPLES } from "./samples.ts";
 import { COMPROMISE, type FindingView, type ProjectSummary, type Severity } from "./types.ts";
 
@@ -49,7 +49,7 @@ try {
   const input = SAMPLES.some((x) => x.id === target)
     ? loadSample(target)
     : /^https?:\/\/(www\.)?github\.com\//.test(target)
-      ? await githubLockfile(target)
+      ? await githubFile(target).then((f) => (say(`Scanning ${f.path}${f.others.length ? ` (also found: ${f.others.slice(0, 5).join(", ")})` : ""}`), f))
       : { filename: basename(target), content: readFileSync(target, "utf8") };
   file = SAMPLES.some((x) => x.id === target) ? `fixtures/${input.filename}` : target;
   const t0 = Date.now();
