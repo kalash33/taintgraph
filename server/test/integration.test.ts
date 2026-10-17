@@ -61,6 +61,7 @@ describe("graph, agents and memory", opts, () => {
     assert.equal(item.action, "pin_previous");
     assert.equal(plan.npm!.overrides["chalk@5.6.1"], "5.6.0", "chalk has two versions, so the override is scoped to the bad one");
     assert.ok(plan.incident.length > 0);
+    for (const i of plan.items.filter((i) => i.direct && i.to)) assert.ok(!Object.keys(plan.npm!.overrides).some((k) => k === i.name || k.startsWith(`${i.name}@`)), `direct dependency ${i.name} must not be overridden (npm EOVERRIDE)`);
     const bad = new Set((await read(ORG, "MATCH (:Advisory {kind: \"malware\"})-[:AFFECTS]->(v:Version) RETURN v.key AS key")).map((r) => r.key));
     for (const i of plan.items.filter((i) => i.to)) assert.ok(!bad.has(`npm/${i.name}@${i.to}`), `${i.name}@${i.to} is flagged`);
     const squat = (await fixPlan(ORG, typo)).items.find((i) => i.name === "lodahs")!;

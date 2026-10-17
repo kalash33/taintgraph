@@ -1,6 +1,7 @@
 import type {
   AccountView,
   DependencyGraph,
+  FixPlan,
   FindingStatus,
   FindingView,
   InvestigateEvent,
@@ -199,6 +200,7 @@ export const api = {
   accounts: (id: string) => getJSON<AccountView[]>(`/api/projects/${enc(id)}/accounts`),
   simulate: (id: string, login: string, waves = 4) => postJSON<WormResult>(`/api/projects/${enc(id)}/simulate`, { login, waves }),
   report: (id: string) => getJSON<{ markdown: string }>(`/api/projects/${enc(id)}/report`),
+  fix: (id: string) => getJSON<FixPlan>(`/api/projects/${enc(id)}/fix`),
   investigation: (id: string, s?: AbortSignal) => getJSON<InvestigationView>(`/api/investigations/${enc(id)}`, s),
   verdict: (findingId: string, verdict: Verdict, note?: string) =>
     postJSON<{ ok: boolean; proposedRule?: RuleView }>(`/api/findings/${enc(findingId)}/verdict`, note ? { verdict, note } : { verdict }),

@@ -6,6 +6,7 @@ import Graph from "./Graph";
 import Findings, { type FocusRequest } from "./Findings";
 import Accounts, { type SimState } from "./Accounts";
 import Markdown from "./Markdown";
+import FixPlan from "./FixPlan";
 import { ErrorState, Loading } from "./States";
 
 function ReportDialog({ id, open, onClose }: { id: string; open: boolean; onClose: () => void }) {
@@ -283,6 +284,11 @@ export default function Project({ id }: { id: string }) {
         ) : (
           <Graph graph={graph} poisoned={poisoned} poisonedAll={poisonedAll} highlight={highlightNode} onSelect={select} skipTo={skipGraph} />
         )}
+      </section>
+
+      <section className="fix-section" aria-labelledby="fix-h">
+        <h2 id="fix-h">How to fix it</h2>
+        <FixPlan projectId={summary.id} refreshKey={summary.findings.map((f) => f.status[0]).join("")} />
       </section>
 
       <div className="columns">

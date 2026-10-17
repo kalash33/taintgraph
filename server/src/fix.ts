@@ -110,15 +110,17 @@ export async function fixPlan(org: string, projectId: string): Promise<FixPlan> 
   const keyFor = (i: FixItem) => ((versionsOf.get(i.name) ?? 1) > 1 ? `${i.name}@${i.from}` : i.name);
   const npmItems = items.filter((i) => i.ecosystem === "npm" && i.to);
   const pyItems = items.filter((i) => i.ecosystem === "PyPI" && i.to);
-  const overrides = Object.fromEntries(npmItems.map((i) => [keyFor(i), i.to!]));
+  // Direct dependencies are changed in the manifest; npm rejects an override that conflicts with one (EOVERRIDE).
+  const transitive = npmItems.filter((i) => !i.direct);
+  const overrides = Object.fromEntries(transitive.map((i) => [keyFor(i), i.to!]));
   const npm = npmItems.length
     ? {
         overrides,
         pnpmOverrides: overrides,
-        resolutions: Object.fromEntries(npmItems.map((i) => [i.name, i.to!])),
+        resolutions: Object.fromEntries(transitive.map((i) => [i.name, i.to!])),
         commands: [
           ...npmItems.filter((i) => i.direct).map((i) => `npm install ${i.dev ? "--save-dev " : ""}${i.name}@${i.to}`),
-          ...(npmItems.some((i) => !i.direct) ? ["# then add the overrides block to package.json and run: npm install"] : []),
+          ...(transitive.length ? ["# then add the overrides block to package.json and run: npm install"] : []),
           ...items.filter((i) => i.ecosystem === "npm" && i.action === "remove").map((i) => `npm uninstall ${i.name}   # ${i.why.replace(/_/g, " ")}`),
         ],
       }

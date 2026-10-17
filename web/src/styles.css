@@ -2481,3 +2481,62 @@ tbody tr:last-child td {
   margin: 8px 0 0;
   padding-left: 18px;
 }
+
+/* Fix plan */
+.fix-section {
+  margin-bottom: 40px;
+}
+.lede-small {
+  color: var(--muted);
+  max-width: 75ch;
+}
+.fix-incident {
+  border-left: 4px solid var(--taint);
+  background: var(--taint-soft);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin: 12px 0 16px;
+}
+.fix-incident ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.fix-pill {
+  margin-left: 8px;
+  font-size: 0.75rem;
+}
+.fix-check {
+  color: var(--clear);
+}
+.fix-snippets {
+  margin-top: 16px;
+}
+.fix-tabs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+.fix-tab {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+}
+.fix-tab.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--river);
+  font-weight: 600;
+}
+.fix-tab:focus-visible {
+  outline: 2px solid var(--river);
+  outline-offset: 2px;
+}
+.fix-copy {
+  margin-left: auto;
+}
