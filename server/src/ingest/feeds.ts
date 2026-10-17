@@ -108,7 +108,8 @@ export interface Classified {
  * explicit MAL- version list confirms malware; a range-only match is "possible malware".
  */
 /** Advisory wording that describes shipped malware rather than a bug (not "malicious users" or "malicious input"). */
-export const MALWARE_TEXT = /^(malicious|malware)\b|\bmalicious (code|software|package|version|release|payload)|\bmalware\b|\bcrypto ?(currency )?miner|\bcredential stealer|\bbackdoor(ed)?\b/i;
+// "malicious code" alone is not enough: CVEs say "when compiling crafted malicious code" about attacker input.
+export const MALWARE_TEXT = /^(malicious|malware)\b|\bmalware\b|\bembedded malicious\b|\bcontain(s|ed|ing)? malicious\b|\bmalicious (package|version|release)s?\b|\bcrypto ?(currency )?miner|\bcredential stealer|\bbackdoor(ed)?\b/i;
 
 export function classifyAdvisory(v: OsvVuln, name: string, version: string): Classified | null {
   const affected = (v.affected ?? []).filter((a) => a.package?.name && sameName(a.package.name, name));

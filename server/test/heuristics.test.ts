@@ -66,5 +66,5 @@ test("upgrade advice comes from the range containing the installed version", () 
 test("advisory wording that means shipped malware", async () => {
   const { MALWARE_TEXT } = await import("../src/ingest/feeds.ts");
   for (const s of ["A number of releases of ultralytics contained malicious crypto miner software.", "Malicious code in chalk (npm)", "Embedded malware in rc", "The package was backdoored", "litellm release ships a credential stealer"]) assert.ok(MALWARE_TEXT.test(s), s);
-  for (const s of ["Infinite loop causing Denial of Service in colors", "XSS allows malicious users to inject scripts", "Prototype pollution via malicious input", "Regular expression denial of service"]) assert.ok(!MALWARE_TEXT.test(s), s);
+  for (const s of ["Infinite loop causing Denial of Service in colors", "XSS allows malicious users to inject scripts", "Prototype pollution via malicious input", "Regular expression denial of service", "Babel vulnerable to arbitrary code execution when compiling specifically crafted malicious code"]) assert.ok(!MALWARE_TEXT.test(s), s);
 });
