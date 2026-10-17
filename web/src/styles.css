@@ -2540,3 +2540,31 @@ tbody tr:last-child td {
 .fix-copy {
   margin-left: auto;
 }
+
+/* Changes since the last scan */
+.changes {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--river);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 18px;
+  margin: -16px 0 32px;
+}
+.changes-hot {
+  border-left-color: var(--taint);
+}
+.changes-title {
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+}
+.changes p {
+  margin: 0;
+}
+.changes-flagged,
+.changes-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.changes details {
+  margin-top: 8px;
+}

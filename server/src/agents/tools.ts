@@ -369,6 +369,29 @@ const workspace: Tool = {
   },
 };
 
+const changes: Tool = {
+  label: "Compared with the last scan",
+  spec: { name: "scan_changes", description: "What changed since the previous scan of this project: new packages, removed ones, version changes, and which of the new versions are flagged.", parameters: { type: "object", properties: {} } },
+  async run(c) {
+    const { scanChanges } = await import("../changes.ts");
+    const d = await scanChanges(c.org, c.project.id);
+    if (d.since === null) return { outcome: "not_in_graph", summary: `${c.project.name} has been scanned only once, so there is nothing to compare yet.`, data: d, query: "scan_history", evidence: ev() };
+    const when = new Date(d.since).toISOString().slice(0, 16).replace("T", " ");
+    const parts = [
+      d.changed.length ? `${d.changed.length} version change${d.changed.length === 1 ? "" : "s"} (${d.changed.slice(0, 4).map((x) => `${x.name} ${x.from.join("/") || "–"} → ${x.to.join("/") || "–"}`).join(", ")})` : "",
+      d.added.length ? `${d.added.length} new package${d.added.length === 1 ? "" : "s"} (${d.added.slice(0, 4).map((x) => `${x.name}@${x.version}`).join(", ")})` : "",
+      d.removed.length ? `${d.removed.length} removed` : "",
+    ].filter(Boolean);
+    return {
+      outcome: "answered",
+      summary: `Since the scan on ${when} UTC: ${parts.join("; ") || "nothing changed"}.${d.newlyFlagged.length ? ` Newly flagged: ${d.newlyFlagged.slice(0, 4).map((f) => `${f.name}@${f.version} (${f.signal.replace(/_/g, " ")})`).join(", ")}.` : " None of the new versions is flagged."}`,
+      data: { ...d, added: d.added.slice(0, 40), removed: d.removed.slice(0, 40), changed: d.changed.slice(0, 40) },
+      query: "scan_history",
+      evidence: ev([root(c), ...d.newlyFlagged.slice(0, 8).map((f) => f.versionKey)]),
+    };
+  },
+};
+
 const chokepoints: Tool = {
   label: "Found chokepoints",
   spec: { name: "chokepoints", description: "The versions the most dependency paths run through (betweenness centrality): patching or pinning these protects the most.", parameters: { type: "object", properties: {} } },
@@ -412,7 +435,7 @@ export const recall: Tool = {
   },
 };
 
-export const TOOLS: Tool[] = [overview, exposures, explain, fix, workspace, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
+export const TOOLS: Tool[] = [overview, exposures, explain, fix, workspace, changes, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
 export const toolByName = new Map([...TOOLS, recall].map((t) => [t.spec.name, t]));
 export const queryText = (r: ToolResult) => shown(r.query);
 export { COMPROMISE };

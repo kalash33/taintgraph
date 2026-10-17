@@ -207,6 +207,7 @@ async function builtIn(ctx: Ctx, q: string, step: Step, all: () => ToolResult[])
     for (const l of named.slice(0, 2)) await add("workspace_exposure", { login: l });
     for (const t of pkgs.slice(0, 2)) await add("workspace_exposure", { name: t });
   }
+  if (/what changed|since (the )?last|changed since|new since|what'?s new|diff\b|last scan/.test(lower)) await add("scan_changes");
   if (/\bmcp\b|claude|cursor|agent tool|ai tool/.test(lower)) await add("mcp_servers");
   if (date) await add("exposed_on", { date });
   if (/chokepoint|bottleneck|central|most paths|pin first|patch first/.test(lower)) await add("chokepoints");

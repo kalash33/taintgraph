@@ -81,6 +81,24 @@ describe("graph, agents and memory", opts, () => {
     assert.equal((await toolByName.get("workspace_exposure")!.run(ctx, { name: "not-a-real-package-xyz" })).outcome, "unknown_name");
   });
 
+  test("a rescan reports what changed, and which new versions are flagged", async () => {
+    const { scanChanges } = await import("../src/changes.ts");
+    const lock = (deps: Record<string, string>) => ({
+      filename: "package-lock.json",
+      name: "diff-demo",
+      content: JSON.stringify({ name: "diff-demo", lockfileVersion: 3, packages: { "": { name: "diff-demo", dependencies: deps }, ...Object.fromEntries(Object.entries(deps).map(([n, v]) => [`node_modules/${n}`, { version: v }])) } }),
+    });
+    const id = await scan(ORG, lock({ chalk: "5.6.0", debug: "4.4.1" }));
+    assert.equal((await scanChanges(ORG, id)).since, null);
+    assert.equal(await scan(ORG, lock({ chalk: "5.6.1", debug: "4.4.1", is: "3.3.1" })), id, "same project after a lockfile update");
+    const d = await scanChanges(ORG, id);
+    assert.ok(d.since);
+    assert.deepEqual(d.changed, [{ name: "chalk", from: ["5.6.0"], to: ["5.6.1"] }]);
+    assert.deepEqual(d.added, [{ name: "is", version: "3.3.1" }]);
+    const flagged = d.newlyFlagged.map((f) => `${f.name}@${f.version}`);
+    assert.ok(flagged.includes("chalk@5.6.1") && flagged.includes("is@3.3.1"), flagged.join(","));
+  });
+
   test("the September 2025 compromise is found with routes", async () => {
     const s = await summary(ORG, chalk);
     assert.equal(s.verdict, "compromised");

@@ -16,6 +16,7 @@ import { startWorkers } from "./agents/workers.ts";
 import { activateRule, memoryView, recordVerdict, type Verdict } from "./memory.ts";
 import { seedWorkspace } from "./seed.ts";
 import { fixPlan } from "./fix.ts";
+import { scanChanges } from "./changes.ts";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 26 * 1024 * 1024, trustProxy: config.trustProxy });
 const bad = (msg: string, statusCode = 400) => Object.assign(new Error(msg), { statusCode });
@@ -140,6 +141,7 @@ app.post<{ Params: { id: string }; Body: { question?: unknown } }>("/api/project
     out.end();
   }
 });
+app.get<{ Params: { id: string } }>("/api/projects/:id/changes", { preHandler: limit("read") }, async (req) => scanChanges(org(req), req.params.id));
 app.get<{ Params: { id: string } }>("/api/projects/:id/fix", { preHandler: limit("read") }, async (req) => fixPlan(org(req), req.params.id));
 app.get<{ Params: { id: string } }>("/api/projects/:id/report", { preHandler: limit("read") }, async (req) => {
   const o = org(req);

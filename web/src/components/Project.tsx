@@ -7,6 +7,7 @@ import Findings, { type FocusRequest } from "./Findings";
 import Accounts, { type SimState } from "./Accounts";
 import Markdown from "./Markdown";
 import FixPlan from "./FixPlan";
+import Changes from "./Changes";
 import { ErrorState, Loading } from "./States";
 
 function ReportDialog({ id, open, onClose }: { id: string; open: boolean; onClose: () => void }) {
@@ -271,6 +272,8 @@ export default function Project({ id }: { id: string }) {
           </div>
         </details>
       </section>
+
+      <Changes projectId={summary.id} scanId={summary.scanId} />
 
       <section className="graph-section" aria-labelledby="graph-h">
         <h2 id="graph-h">Dependency graph</h2>

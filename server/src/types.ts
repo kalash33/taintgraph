@@ -192,6 +192,15 @@ export type ScanEvent =
   | { type: "done"; projectId: string }
   | { type: "error"; message: string };
 
+/** What changed between a project's two latest scans. */
+export interface ScanChanges {
+  since: number | null; // when the previous scan ran; null when there is only one scan
+  added: { name: string; version: string }[]; // packages that weren't installed before
+  removed: { name: string; version: string }[];
+  changed: { name: string; from: string[]; to: string[] }[]; // same package, different versions
+  newlyFlagged: { findingId: string; versionKey: string; name: string; version: string; signal: SignalId; severity: Severity; title: string }[]; // open findings on versions the previous scan didn't have
+}
+
 /** One change in a fix plan: move a flagged version to a safe one (or remove it). */
 export interface FixItem {
   name: string;
@@ -245,6 +254,7 @@ POST /api/projects/:id/simulate { login, waves? }   -> WormResult
 POST /api/projects/:id/ask { question }       -> text/event-stream of InvestigateEvent
 GET  /api/projects/:id/report                 -> { markdown }
 GET  /api/projects/:id/fix                    -> FixPlan
+GET  /api/projects/:id/changes                -> ScanChanges
 GET  /api/investigations/:id                  -> InvestigationView
 POST /api/findings/:id/verdict { verdict: "confirmed" | "dismissed" | "accepted", note? } -> { ok, proposedRule?: RuleView }
 GET  /api/memory                              -> MemoryView

@@ -79,7 +79,7 @@ Lets a coding agent check a lockfile before it changes one:
 | `scan` | scan a local lockfile or MCP config by path, or a sample |
 | `list_projects` | projects in the workspace with their verdicts |
 | `ask` | ask the Analyst; returns the answer and its steps |
-| `explain_package`, `trace_exposures`, `fix_plan`, `workspace_exposure`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints` | the Analyst's graph tools, one-to-one |
+| `explain_package`, `trace_exposures`, `fix_plan`, `workspace_exposure`, `scan_changes`, `top_accounts`, `simulate_worm`, `mcp_servers`, `chokepoints` | the Analyst's graph tools, one-to-one |
 | `record_verdict` | record a decision. An agent can confirm malware but cannot dismiss or accept it; only a person can, in the web app |
 
 ## HTTP API
@@ -97,6 +97,7 @@ JSON everywhere; the workspace comes from the `x-taintgraph-org` header (default
 | GET | `/api/projects/:id/accounts` | top 25 accounts by reach |
 | POST | `/api/projects/:id/simulate` | body `{ login, waves? }`; worm waves |
 | POST | `/api/projects/:id/ask` | body `{ question }`; streams `started`, `step`…, `answer`, `done` |
+| GET | `/api/projects/:id/changes` | what changed since the previous scan, and which new versions are flagged |
 | GET | `/api/projects/:id/fix` | fix plan: items, npm/pnpm/yarn overrides, Python commands, incident steps |
 | GET | `/api/projects/:id/report` | `{ markdown }` |
 | GET | `/api/investigations/:id` | a past investigation with steps and evidence |

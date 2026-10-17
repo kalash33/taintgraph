@@ -40,6 +40,7 @@ The Analyst follows the event guide on agents that reason over a graph.
 | `trace_exposures` | every advisory-hit version, malware first, with its route and the version that fixes all of its advisories |
 | `explain_package` | one package: versions, routes, advisories, publishers, maintainers, install scripts, earlier verdicts |
 | `workspace_exposure` | across **every** project in the workspace: which ones install a package or version (with who published and maintains it), or which ones an account can publish into |
+| `scan_changes` | what changed since the previous scan: version changes, new and removed packages, and which new versions are flagged |
 | `fix_plan` | the fix: a safe version for every compromised, tampered or high-severity version (re-checked on OSV.dev), overrides vs. direct upgrades, and incident steps |
 | `top_accounts` | the accounts that can publish the most of the tree, by PageRank weight |
 | `simulate_worm` | wave-by-wave spread from one account |
