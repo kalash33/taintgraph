@@ -58,7 +58,7 @@ Those are graph questions. Taintgraph loads the lockfile into FalkorDB: every in
 
 **Answers questions, and shows its work.** An Analyst agent uses fixed, read-only Cypher tools. Every step shows the tool, the query and what came back, and the evidence subgraph is drawn. Answers that name anything the graph didn't return are rebuilt from the graph.
 
-<img src="docs/screenshots/ask.png" alt="The Analyst traces litellm through dspy and names who could publish a poisoned dspy" />
+<img src="docs/screenshots/ask.png" alt="Gemini, through Taintgraph's tools: chalk@5.6.1 is in three projects, its maintainers can publish into four, and the exact overrides to change" />
 
 </td>
 <td valign="top">
