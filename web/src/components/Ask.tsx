@@ -38,7 +38,9 @@ function suggestions(s: ProjectSummary): string[] {
   const acct = s.topAccounts[0];
   if (acct) out.push(`What if ${acct.login}'s account gets hacked?`);
   if (s.mcpServers.length > 0) out.push("Which MCP servers could run code we haven't reviewed?");
-  out.push("Are we exposed to any malware?");
+  const bad = flagged.find((f) => ["malware", "possible_malware", "removed"].includes(f.signal));
+  if (bad) out.push(`Which of our other projects install ${bad.name}@${bad.version}, and what else can its maintainers reach?`);
+  out.push(bad || flagged.length ? "What exactly should we change to fix this?" : "Are we exposed to any malware?");
   return out;
 }
 
