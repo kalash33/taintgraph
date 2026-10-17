@@ -204,6 +204,7 @@ async function builtIn(ctx: Ctx, q: string, step: Step, all: () => ToolResult[])
   if (/\bmcp\b|claude|cursor|agent tool|ai tool/.test(lower)) await add("mcp_servers");
   if (date) await add("exposed_on", { date });
   if (/chokepoint|bottleneck|central|most paths|pin first|patch first/.test(lower)) await add("chokepoints");
+  if (/\bfix|remediat|what should (we|i) do|upgrade|override|patch\b|safe version/.test(lower)) await add("fix_plan");
   const phrase = q.match(/advisor(?:y|ies)\s+(?:about|mentioning|for|on)\s+["']?([^"'?]+)/i)?.[1];
   if (phrase) await add("search_advisories", { text: phrase });
   const general = /compromis|malware|malicious|safe|exposed|affected|reach|risk|wrong|status|summar|overview|fix|what should/.test(lower);

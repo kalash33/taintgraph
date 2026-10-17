@@ -310,6 +310,28 @@ const searchAdvisories: Tool = {
   },
 };
 
+const fix: Tool = {
+  label: "Planned the fix",
+  spec: {
+    name: "fix_plan",
+    description: "The fix: for each compromised, tampered or high-severity version, the version to move to (re-checked against OSV.dev), whether it's a direct dependency or needs an override, and incident-response steps for compromises.",
+    parameters: { type: "object", properties: {} },
+  },
+  async run(c) {
+    const { fixPlan } = await import("../fix.ts");
+    const plan = await fixPlan(c.org, c.project.id);
+    if (!plan.items.length) return { outcome: "not_in_graph", summary: `Nothing in ${c.project.name} needs fixing right now${plan.skipped ? ` (${plan.skipped} lower-severity findings left out)` : ""}.`, data: plan, query: "fix_candidates", evidence: ev([root(c)]) };
+    const line = (i: (typeof plan.items)[number]) => (i.to ? `${i.name}@${i.from} → ${i.to}${i.majorChange ? " (major version change)" : ""}` : i.action === "no_fix" ? `${i.name}@${i.from} (no fix released yet)` : `remove ${i.name}@${i.from}`);
+    return {
+      outcome: "answered",
+      summary: `Fix plan for ${c.project.name}: ${plan.items.slice(0, 6).map(line).join("; ")}${plan.items.length > 6 ? `; and ${plan.items.length - 6} more` : ""}.${plan.incident.length ? " Compromised versions were installed, so rotate the tokens those machines could read." : ""}`,
+      data: { items: plan.items.map((i) => ({ package: `${i.name}@${i.from}`, to: i.to, action: i.action, why: i.why, direct: i.direct, majorChange: i.majorChange, recheck: i.check, note: i.note })), npmOverrides: plan.npm?.overrides ?? null, pythonCommands: plan.python?.commands ?? null, incident: plan.incident },
+      query: "fix_candidates",
+      evidence: ev([root(c), ...plan.items.slice(0, 10).map((i) => `${i.ecosystem === "PyPI" ? "pypi" : "npm"}/${i.name}@${i.from}`)]),
+    };
+  },
+};
+
 const chokepoints: Tool = {
   label: "Found chokepoints",
   spec: { name: "chokepoints", description: "The versions the most dependency paths run through (betweenness centrality): patching or pinning these protects the most.", parameters: { type: "object", properties: {} } },
@@ -353,7 +375,7 @@ export const recall: Tool = {
   },
 };
 
-export const TOOLS: Tool[] = [overview, exposures, explain, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
+export const TOOLS: Tool[] = [overview, exposures, explain, fix, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
 export const toolByName = new Map([...TOOLS, recall].map((t) => [t.spec.name, t]));
 export const queryText = (r: ToolResult) => shown(r.query);
 export { COMPROMISE };

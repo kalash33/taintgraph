@@ -2,6 +2,7 @@ import { read, run } from "../db.ts";
 import { Q } from "../queries.ts";
 import { short, summary, untrusted } from "../analysis.ts";
 import { COMPROMISE, type FindingView } from "../types.ts";
+import { fixPlan } from "../fix.ts";
 
 // The Reporter turns the graph (and the Analyst's last conclusion) into an incident report a human can forward.
 
@@ -39,6 +40,16 @@ export async function buildReport(org: string, projectId: string): Promise<strin
     out.push(`## Accounts with the most reach`);
     out.push(`One hijacked login can publish a new version of every package it maintains.`);
     for (const a of s.topAccounts.slice(0, 5)) out.push(`- ${md(a.login)}: ${a.versions} versions (${(a.share * 100).toFixed(0)}% of the tree)${a.flagged ? ", **touches a flagged version**" : ""}`);
+  }
+  const plan = await fixPlan(org, projectId).catch(() => null);
+  if (plan?.items.length) {
+    out.push(`## Fix plan`);
+    out.push(`| Package | Move to | How | Note |\n|---|---|---|---|`);
+    for (const i of plan.items.slice(0, 40))
+      out.push(`| ${md(i.name)}@${md(i.from)} | ${i.to ? md(i.to) + (i.majorChange ? " (major)" : "") : i.action === "no_fix" ? "no fix yet" : "remove"} | ${i.direct ? "direct dependency" : "override"} | ${md(i.note)} |`);
+    if (plan.npm) out.push(`Add to package.json (npm; pnpm uses \`pnpm.overrides\`, yarn uses \`resolutions\`):\n\n\`\`\`json\n${JSON.stringify({ overrides: plan.npm.overrides }, null, 2)}\n\`\`\``);
+    if (plan.python) out.push(`Python:\n\n\`\`\`bash\n${plan.python.commands.join("\n")}\n\`\`\``);
+    if (plan.incident.length) out.push(`### Incident response\n${plan.incident.map((s) => `- ${md(s)}`).join("\n")}`);
   }
   if (inv?.answer) out.push(`## Analyst's conclusion\n> ${md(inv.question)}\n\n${md(inv.answer).replace(/\n/g, "\n\n")}`);
   if (reviewed.length) out.push(`## Reviewed by people or memory (${reviewed.length})\n${reviewed.slice(0, 15).map((f) => `- ${md(f.name)}@${md(f.version)} ${f.signal.replace(/_/g, " ")}: ${f.status}${f.statusNote ? ` (${md(f.statusNote)})` : ""}`).join("\n")}`);

@@ -265,9 +265,11 @@ async function enrichPypi(parsed: Parsed, pkgs: Pkg[], dd: Map<string, any>, row
       seen.add(`${o.key}|${p.name}`);
       rows.maintainers.push({ ...o, pkg: pypiPackageKey(p.name) });
     }
-    if (mine?.time) {
+    // The previous release: published earlier and lower on the same line. A release PyPI deleted has no time of its
+    // own, so for it any lower release still listed counts.
+    if (mine?.time || (proj && !mine)) {
       const prev = Object.entries(rel)
-        .filter(([v, r]) => r.time && r.time < mine.time! && /^[\d.]+$/.test(v) && compareVersions(v, p.version) < 0)
+        .filter(([v, r]) => r.time && (!mine?.time || r.time < mine.time) && !r.yanked && /^[\d.]+$/.test(v) && compareVersions(v, p.version) < 0)
         .sort((a, b) => compareVersions(a[0], b[0]))
         .pop()?.[0];
       if (prev) {

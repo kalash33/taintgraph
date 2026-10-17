@@ -14,6 +14,7 @@ const HELP = `Usage: pnpm scan <lockfile | MCP config | GitHub URL | sample> [op
   --fail-on <level>   Exit 1 if an open finding is at or above: malware | critical | high | medium
   --json              Print the project summary as JSON
   --sarif <file>      Write findings as SARIF 2.1.0 (GitHub code scanning)
+  --fix               Print the fix plan: safe versions, overrides, incident steps
 
 Exit codes: 0 ok, 1 findings at or above --fail-on, 2 the scan could not run.
 Samples: ${SAMPLES.map((s) => s.id).join(", ")}`;
@@ -31,6 +32,7 @@ const org = opt("org") ?? config.defaultOrg;
 const question = opt("ask");
 const failOn = opt("fail-on");
 const sarif = opt("sarif");
+const wantFix = flag("fix");
 const json = flag("json");
 if (flag("help") || !args[0]) {
   console.log(HELP);
@@ -68,6 +70,16 @@ if (json) console.log(JSON.stringify(s, null, 2));
 if (sarif) {
   writeFileSync(sarif, JSON.stringify(toSarif(s, file), null, 2));
   say(`SARIF written to ${sarif}`);
+}
+if (wantFix) {
+  const { fixPlan } = await import("./fix.ts");
+  const plan = await fixPlan(org, s.id);
+  say(`\nFix plan (${plan.items.length} change${plan.items.length === 1 ? "" : "s"}${plan.skipped ? `, ${plan.skipped} lower-severity findings left out` : ""}):`);
+  for (const i of plan.items) say(`  ${i.to ? `${i.name}@${i.from} → ${i.to}` : i.action === "no_fix" ? `${i.name}@${i.from}: no fix released yet` : `remove ${i.name}@${i.from}`}${i.majorChange ? "  [major version]" : ""}  (${i.direct ? "direct" : "override"}, ${i.why.replace(/_/g, " ")}) ${i.note}`);
+  if (plan.npm) say(`\npackage.json:\n${JSON.stringify({ overrides: plan.npm.overrides }, null, 2)}`);
+  if (plan.python) say(`\n${plan.python.commands.join("\n")}`);
+  if (plan.incident.length) say(`\nIncident response:\n${plan.incident.map((x) => `  - ${x}`).join("\n")}`);
+  if (json) console.log(JSON.stringify(plan, null, 2));
 }
 if (question) {
   const { investigate } = await import("./agents/analyst.ts");

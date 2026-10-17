@@ -53,6 +53,21 @@ describe("graph, agents and memory", opts, () => {
     assert.deepEqual(incoming, [], "one previous release per version");
   });
 
+  test("the fix plan pins malware to the clean previous release and never recommends a bad version", async () => {
+    const { fixPlan } = await import("../src/fix.ts");
+    const plan = await fixPlan(ORG, chalk);
+    const item = plan.items.find((i) => i.name === "chalk" && i.from === "5.6.1")!;
+    assert.equal(item.to, "5.6.0");
+    assert.equal(item.action, "pin_previous");
+    assert.equal(plan.npm!.overrides["chalk@5.6.1"], "5.6.0", "chalk has two versions, so the override is scoped to the bad one");
+    assert.ok(plan.incident.length > 0);
+    const bad = new Set((await read(ORG, "MATCH (:Advisory {kind: \"malware\"})-[:AFFECTS]->(v:Version) RETURN v.key AS key")).map((r) => r.key));
+    for (const i of plan.items.filter((i) => i.to)) assert.ok(!bad.has(`npm/${i.name}@${i.to}`), `${i.name}@${i.to} is flagged`);
+    const squat = (await fixPlan(ORG, typo)).items.find((i) => i.name === "lodahs")!;
+    assert.equal(squat.action, "remove");
+    assert.match(squat.note, /lodash/);
+  });
+
   test("the September 2025 compromise is found with routes", async () => {
     const s = await summary(ORG, chalk);
     assert.equal(s.verdict, "compromised");

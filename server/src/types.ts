@@ -192,6 +192,32 @@ export type ScanEvent =
   | { type: "done"; projectId: string }
   | { type: "error"; message: string };
 
+/** One change in a fix plan: move a flagged version to a safe one (or remove it). */
+export interface FixItem {
+  name: string;
+  ecosystem: Ecosystem;
+  from: string;
+  to: string | null; // null: no safe version known yet
+  action: "upgrade" | "pin_previous" | "remove" | "no_fix"; // no_fix: a vulnerability with no fixed release yet; keep watching
+  why: SignalId;
+  severity: Severity;
+  findingIds: string[];
+  direct: boolean; // declared by the project itself, so edit the manifest; otherwise override the transitive version
+  dev: boolean;
+  majorChange: boolean; // the target is on a different major version: check for breaking changes
+  check: "clean" | "has_vulnerabilities" | "unchecked"; // the target re-checked against OSV.dev
+  note: string;
+}
+
+export interface FixPlan {
+  projectId: string;
+  items: FixItem[];
+  npm: { overrides: Record<string, string>; pnpmOverrides: Record<string, string>; resolutions: Record<string, string>; commands: string[] } | null;
+  python: { commands: string[]; constraints: string } | null;
+  incident: string[]; // steps for compromised versions: what to rotate and check
+  skipped: number; // lower-severity findings left out of the plan
+}
+
 /** Result of a Sentinel retro-hunt: new advisories for versions some project already installed. */
 export interface SentinelResult {
   checked: number; // versions re-checked against OSV.dev
@@ -218,6 +244,7 @@ GET  /api/projects/:id/accounts               -> AccountView[] (top 25)
 POST /api/projects/:id/simulate { login, waves? }   -> WormResult
 POST /api/projects/:id/ask { question }       -> text/event-stream of InvestigateEvent
 GET  /api/projects/:id/report                 -> { markdown }
+GET  /api/projects/:id/fix                    -> FixPlan
 GET  /api/investigations/:id                  -> InvestigationView
 POST /api/findings/:id/verdict { verdict: "confirmed" | "dismissed" | "accepted", note? } -> { ok, proposedRule?: RuleView }
 GET  /api/memory                              -> MemoryView
