@@ -102,7 +102,7 @@ Indexes and constraints are created by [`server/src/schema.ts`](../server/src/sc
 
 ## FalkorDB notes
 
-Tested on FalkorDB 4.22 (the `latest` image) and a 6.x build. Things we hit and how the queries deal with them:
+Tested on FalkorDB v4.22.1 (pinned in `docker-compose.yml` and CI) and on the 6.x `edge-rs` build. Things we hit and how the queries deal with them:
 
 - `shortestPath` is only allowed in `WITH` or `RETURN`, so it is computed there and filtered afterwards.
 - Repeating the same anonymous pattern, e.g. `(:Scan {id: $scanId})` twice, can return nothing. Bind it once and reuse the variable.

@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 20
     services:
       falkordb:
-        image: falkordb/falkordb:latest
+        image: falkordb/falkordb:v4.22.1
         ports: ["6380:6379"]
     env:
       FALKORDB_URL: redis://localhost:6380

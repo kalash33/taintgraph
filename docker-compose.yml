@@ -1,6 +1,6 @@
 services:
   falkordb:
-    image: falkordb/falkordb:latest
+    image: falkordb/falkordb:v4.22.1
     # FalkorDB has no password by default, so it is only reachable from this machine.
     ports: ["127.0.0.1:6380:6379", "127.0.0.1:3001:3000"]
     environment:

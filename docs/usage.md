@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       falkordb:
-        image: falkordb/falkordb:latest
+        image: falkordb/falkordb:v4.22.1
         ports: ["6379:6379"]
     env:
       FALKORDB_URL: redis://localhost:6379

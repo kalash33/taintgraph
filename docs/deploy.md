@@ -14,7 +14,7 @@ The app listens on `127.0.0.1:8787`; put a reverse proxy with TLS in front of it
 
 ## Railway
 
-1. **FalkorDB service.** New service → Docker image `falkordb/falkordb:latest`.
+1. **FalkorDB service.** New service → Docker image `falkordb/falkordb:v4.22.1`.
    - Add a volume at `/var/lib/falkordb/data`.
    - Set `REDIS_ARGS=--appendonly yes --requirepass <a long random password>`.
    - Don't give it a public domain.
