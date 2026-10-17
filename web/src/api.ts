@@ -3,6 +3,7 @@ import type {
   DependencyGraph,
   FixPlan,
   ScanChanges,
+  TeamsView,
   FindingStatus,
   FindingView,
   InvestigateEvent,
@@ -202,6 +203,7 @@ export const api = {
   simulate: (id: string, login: string, waves = 4) => postJSON<WormResult>(`/api/projects/${enc(id)}/simulate`, { login, waves }),
   report: (id: string) => getJSON<{ markdown: string }>(`/api/projects/${enc(id)}/report`),
   fix: (id: string) => getJSON<FixPlan>(`/api/projects/${enc(id)}/fix`),
+  teams: (id: string) => getJSON<TeamsView>(`/api/projects/${enc(id)}/teams`),
   changes: (id: string) => getJSON<ScanChanges>(`/api/projects/${enc(id)}/changes`),
   investigation: (id: string, s?: AbortSignal) => getJSON<InvestigationView>(`/api/investigations/${enc(id)}`, s),
   verdict: (findingId: string, verdict: Verdict, note?: string) =>

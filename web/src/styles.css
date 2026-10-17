@@ -2579,3 +2579,52 @@ tbody tr:last-child td {
 .thread-toggle input {
   margin-top: 3px;
 }
+
+/* Maintainer teams */
+.teams {
+  margin-top: 32px;
+}
+.team-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.team {
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+.team-flagged {
+  background: var(--taint-soft);
+  margin: 0 -10px;
+  padding: 10px;
+}
+.team-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.team-names {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.team-bar {
+  height: 6px;
+  border-radius: 6px;
+  background: var(--river-soft);
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+.team-bar span {
+  display: block;
+  height: 100%;
+  background: var(--river);
+}
+.team-flagged .team-bar span {
+  background: var(--taint);
+}
+.team-network {
+  border-left: 3px solid var(--river);
+  padding-left: 10px;
+  margin-top: 12px;
+}

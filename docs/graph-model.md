@@ -87,6 +87,8 @@ All 67 queries live in [`queries/`](../queries), one per file, loaded by name. H
 | [`version_routes`](../queries/version_routes.cypher) | `allShortestPaths`, filtered with `all(r IN relationships(route) WHERE …)` |
 | [`algo_pagerank`](../queries/algo_pagerank.cypher) | `algo.pageRank('Version', 'DEPENDS_ON')` |
 | [`algo_chokepoints`](../queries/algo_chokepoints.cypher) | `algo.betweenness` over versions |
+| [`algo_teams`](../queries/algo_teams.cypher) | `algo.labelPropagation` (community detection) over Account-MAINTAINS-Package: maintainer teams |
+| [`algo_components`](../queries/algo_components.cypher) | `algo.WCC` (connected components): the largest network a worm could travel |
 | [`accounts_reach`](../queries/accounts_reach.cypher) | `CALL { … UNION … }` of maintainers and publishers, weighted by PageRank |
 | [`worm_wave`](../queries/worm_wave.cypher) | one wave of worm spread, per project |
 | [`release_facts`](../queries/release_facts.cypher) | compare a release with the one it `PRECEDES` |

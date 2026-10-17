@@ -8,6 +8,7 @@ import Accounts, { type SimState } from "./Accounts";
 import Markdown from "./Markdown";
 import FixPlan from "./FixPlan";
 import Changes from "./Changes";
+import Teams from "./Teams";
 import { ErrorState, Loading } from "./States";
 
 function ReportDialog({ id, open, onClose }: { id: string; open: boolean; onClose: () => void }) {
@@ -314,6 +315,7 @@ export default function Project({ id }: { id: string }) {
               setSim({ status: "idle" });
             }}
           />
+          <Teams projectId={summary.id} scanId={summary.scanId} onSimulate={simulate} />
           {summary.mcpServers.length > 0 && (
             <section className="mcp" aria-labelledby="mcp-h">
               <h2 id="mcp-h">MCP servers</h2>

@@ -60,6 +60,23 @@ export interface AccountView {
   flagged: boolean; // maintains or published a flagged version
 }
 
+/** A maintainer team: a community of accounts that maintain the same packages (label propagation). */
+export interface TeamView {
+  id: number;
+  accounts: string[]; // logins, most reach first
+  accountKeys: string[];
+  versions: number; // versions in this project the team can publish
+  share: number; // of the project's versions (0..1)
+  weight: number; // PageRank weight of those versions
+  flagged: boolean; // the team can publish a version that is flagged
+  packages: string[]; // a few package names it can publish
+}
+
+export interface TeamsView {
+  teams: TeamView[];
+  network: { accounts: number; totalAccounts: number }; // the largest connected maintainer network (WCC) in this project
+}
+
 export interface McpServerView {
   name: string;
   client: string;
@@ -251,6 +268,7 @@ GET  /api/projects                            -> ProjectListItem[]
 GET  /api/projects/:id                        -> ProjectSummary
 GET  /api/projects/:id/graph                  -> DependencyGraph
 GET  /api/projects/:id/accounts               -> AccountView[] (top 25)
+GET  /api/projects/:id/teams                  -> TeamsView (community detection + connected components)
 POST /api/projects/:id/simulate { login, waves? }   -> WormResult
 POST /api/projects/:id/ask { question, followUp? }  -> text/event-stream of InvestigateEvent (followUp: an investigation id to continue)
 GET  /api/projects/:id/report                 -> { markdown }

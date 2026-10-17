@@ -42,6 +42,7 @@ The Analyst follows the event guide on agents that reason over a graph.
 | `workspace_exposure` | across **every** project in the workspace: which ones install a package or version (with who published and maintains it), or which ones an account can publish into |
 | `scan_changes` | what changed since the previous scan: version changes, new and removed packages, and which new versions are flagged |
 | `fix_plan` | the fix: a safe version for every compromised, tampered or high-severity version (re-checked on OSV.dev), overrides vs. direct upgrades, and incident steps |
+| `maintainer_teams` | maintainer teams by community detection (`algo.labelPropagation`), how much of the project each can publish, and the largest connected maintainer network (`algo.WCC`) |
 | `top_accounts` | the accounts that can publish the most of the tree, by PageRank weight |
 | `simulate_worm` | wave-by-wave spread from one account |
 | `mcp_servers` | MCP servers, pinning, and advisories anywhere under them |

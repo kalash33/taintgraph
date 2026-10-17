@@ -4,7 +4,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { config, paths } from "./config.ts";
 import { isValidOrg, ping } from "./db.ts";
-import { accounts, dependencyGraph, getProject, listProjects, simulateWorm, summary } from "./analysis.ts";
+import { accounts, dependencyGraph, getProject, listProjects, simulateWorm, summary, teams } from "./analysis.ts";
 import { scan } from "./ingest/scout.ts";
 import { githubFile } from "./ingest/github.ts";
 import { loadSample, SAMPLES } from "./samples.ts";
@@ -113,6 +113,10 @@ app.get<{ Params: { id: string } }>("/api/projects/:id", { preHandler: limit("re
 app.get<{ Params: { id: string } }>("/api/projects/:id/graph", { preHandler: limit("read") }, async (req) => {
   const o = org(req);
   return dependencyGraph(o, await getProject(o, req.params.id));
+});
+app.get<{ Params: { id: string } }>("/api/projects/:id/teams", { preHandler: limit("read") }, async (req) => {
+  const o = org(req);
+  return teams(o, await getProject(o, req.params.id));
 });
 app.get<{ Params: { id: string } }>("/api/projects/:id/accounts", { preHandler: limit("read") }, async (req) => {
   const o = org(req);

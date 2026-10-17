@@ -47,7 +47,7 @@ Those are graph questions. Taintgraph loads the lockfile into FalkorDB: every in
 </td>
 <td width="50%" valign="top">
 
-**Ranks who can poison you, and simulates the worm.** Accounts are weighted by the PageRank of everything they can publish. Pick one and watch a Shai-Hulud style worm spread wave by wave.
+**Ranks who can poison you, and simulates the worm.** Accounts are weighted by the PageRank of everything they can publish; community detection groups them into maintainer teams, and connected components show how far a worm could ever travel. Pick one and watch a Shai-Hulud style worm spread wave by wave.
 
 <img src="docs/screenshots/worm.png" alt="Worm simulation from qix: 66% of packages poisoned in four waves" />
 
@@ -97,7 +97,7 @@ It also flags tampered releases that no advisory covers yet:
 
 `pnpm bench` scans the exact versions shipped in 19 real supply-chain incidents (2018 to 2026), plus 10 clean controls that include the releases just before and just after a compromise. [Full results](benchmark/RESULTS.md).
 
-**19 of 19 incidents detected, 0 false alarms on 10 clean controls.**
+**19 of 19 incidents detected, 0 false alarms on 10 clean controls.** And Taintgraph's own lockfile scans clean: 297 versions, 0 advisories.
 
 | Incident | Version | Detected as |
 |---|---|---|
@@ -150,7 +150,7 @@ Open http://localhost:8787 and click **chalk and debug, September 2025**: a real
 docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
 pnpm install
 pnpm build && pnpm start          # http://localhost:8787
-pnpm test                         # 74 tests: unit, integration, real incidents
+pnpm test                         # 75 tests: unit, integration, real incidents
 ```
 </details>
 
@@ -200,7 +200,7 @@ flowchart LR
 ```
 
 - **Scout** parses the input, pulls advisories and registry history, writes the graph, runs PageRank and triages.
-- **Analyst** answers questions with thirteen fixed tools, including workspace-wide ones ("which of our projects install chalk@5.6.1, and what else can its maintainer reach?"), over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
+- **Analyst** answers questions with fourteen fixed tools, including workspace-wide ones ("which of our projects install chalk@5.6.1, and what else can its maintainer reach?"), over `GRAPH.RO_QUERY`. It resolves names first, returns typed outcomes (`answered`, `from_memory`, `not_in_graph`, `unknown_name`) and checks its answer against the tool results.
 - **Reporter** writes an incident report you can forward.
 - **Sentinel** re-checks every version any project ever installed against OSV, so an advisory published today finds the app that installed the package last month.
 
@@ -214,7 +214,7 @@ flowchart LR
 memory: (:Finding) (:Investigation)-[:HAS_STEP]->(:Step) (:Rule)-[:LEARNED_FROM]->(:Finding) (:Task)
 ```
 
-All 67 Cypher queries are plain files in [`queries/`](queries). They use `shortestPath`, `allShortestPaths`, variable-length paths, `algo.pageRank`, `algo.betweenness`, full-text search and `CALL {}` subqueries.
+All 67 Cypher queries are plain files in [`queries/`](queries). They use `shortestPath`, `allShortestPaths`, variable-length paths, `algo.pageRank`, `algo.betweenness`, `algo.labelPropagation` (community detection), `algo.WCC` (connected components), full-text search and `CALL {}` subqueries.
 
 ## Documentation
 

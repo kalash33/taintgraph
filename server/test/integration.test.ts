@@ -260,4 +260,13 @@ describe("graph, agents and memory", opts, () => {
     assert.ok(steps.includes("explain_package"), steps.join(","));
     assert.match(answer, /chalk/);
   });
+
+  test("community detection finds the chalk maintainer team, and connected components bound the worm", async () => {
+    const { teams } = await import("../src/analysis.ts");
+    const r = await teams(ORG, await getProject(ORG, chalk));
+    const team = r.teams.find((x) => x.accounts.includes("qix"));
+    assert.ok(team, r.teams.map((x) => x.accounts.slice(0, 3).join("/")).join("; "));
+    assert.ok(team.flagged, "the team that can publish chalk@5.6.1 is flagged");
+    assert.ok(r.network.accounts > 10 && r.network.accounts <= r.network.totalAccounts);
+  });
 });

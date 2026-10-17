@@ -1,6 +1,6 @@
 import { read } from "../db.ts";
 import { Q, shown } from "../queries.ts";
-import { accounts, loadFindings, pathTo, projectTree, short, simulateWorm, untrusted, verdictOf, type ProjectRef, type Tree } from "../analysis.ts";
+import { accounts, loadFindings, pathTo, projectTree, short, simulateWorm, teams, untrusted, verdictOf, type ProjectRef, type Tree } from "../analysis.ts";
 import { editDistance } from "../ingest/heuristics.ts";
 import { compareVersions } from "../ingest/feeds.ts";
 import { COMPROMISE, type Evidence, type Outcome } from "../types.ts";
@@ -392,6 +392,26 @@ const changes: Tool = {
   },
 };
 
+const teamsTool: Tool = {
+  label: "Found maintainer teams",
+  spec: {
+    name: "maintainer_teams",
+    description: "Maintainer teams found by community detection (label propagation) over who maintains what, with how much of this project each team can publish; plus the largest connected maintainer network (connected components), the ceiling on how far a worm can spread.",
+    parameters: { type: "object", properties: {} },
+  },
+  async run(c) {
+    const t = await teams(c.org, c.project, 6);
+    if (!t.teams.length) return { outcome: "not_in_graph", summary: "No maintainer data for this project.", data: t, query: "algo_teams", evidence: ev() };
+    return {
+      outcome: "answered",
+      summary: `Maintainer teams: ${t.teams.slice(0, 4).map((x) => `${x.accounts.slice(0, 3).join(", ")}${x.accounts.length > 3 ? ` and ${x.accounts.length - 3} more` : ""} can publish ${x.versions} versions (${(x.share * 100).toFixed(0)}%${x.flagged ? ", including a flagged one" : ""})`).join("; ")}. ${t.network.accounts} of the project's ${t.network.totalAccounts} accounts form one connected maintainer network, the furthest a self-spreading worm could reach.`,
+      data: { teams: t.teams.map((x) => ({ accounts: x.accounts.slice(0, 10), size: x.accounts.length, versions: x.versions, share: Number(x.share.toFixed(3)), flagged: x.flagged, packages: x.packages })), largestNetwork: t.network },
+      query: "algo_teams",
+      evidence: ev(t.teams.slice(0, 3).flatMap((x) => x.accountKeys.slice(0, 4))),
+    };
+  },
+};
+
 const chokepoints: Tool = {
   label: "Found chokepoints",
   spec: { name: "chokepoints", description: "The versions the most dependency paths run through (betweenness centrality): patching or pinning these protects the most.", parameters: { type: "object", properties: {} } },
@@ -435,7 +455,7 @@ export const recall: Tool = {
   },
 };
 
-export const TOOLS: Tool[] = [overview, exposures, explain, fix, workspace, changes, topAccounts, worm, mcp, pointInTime, searchAdvisories, chokepoints];
+export const TOOLS: Tool[] = [overview, exposures, explain, fix, workspace, changes, topAccounts, teamsTool, worm, mcp, pointInTime, searchAdvisories, chokepoints];
 export const toolByName = new Map([...TOOLS, recall].map((t) => [t.spec.name, t]));
 export const queryText = (r: ToolResult) => shown(r.query);
 export { COMPROMISE };

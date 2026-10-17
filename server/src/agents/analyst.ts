@@ -228,6 +228,7 @@ async function builtIn(ctx: Ctx, question: string, step: Step, all: () => ToolRe
     if (candidate && !STOP.has(candidate.toLowerCase())) await add("simulate_worm", { login: candidate.replace(/^@/, "") });
   }
   if (wantsAccounts || (wantsWorm && !login)) await add("top_accounts");
+  if (/\bteams?\b|groups? of maintainers|clusters?|communit|network|how far could|ceiling/.test(lower)) await add("maintainer_teams");
   // Incident questions across the whole workspace.
   if (/other projects|which projects|all (of )?(our|my|the) projects|across|anywhere else|workspace|every project|other apps/.test(lower)) {
     const named = login ? [login.replace(/^@/, "")] : (await read(ctx.org, Q("accounts_named"), { words: tokens.map((t) => t.replace(/^@/, "").toLowerCase()).filter((t) => !STOP.has(t)) })).map((r) => r.login as string);

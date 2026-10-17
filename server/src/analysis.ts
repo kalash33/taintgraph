@@ -15,6 +15,8 @@ import {
   type ProjectSummary,
   type Severity,
   type SignalId,
+  type TeamView,
+  type TeamsView,
   type WormResult,
 } from "./types.ts";
 
@@ -337,6 +339,32 @@ export async function accounts(org: string, p: ProjectRef, limit = 10, flagged?:
   const total = Math.max(1, counts?.packages ?? 1);
   const bad = flagged ?? new Set((await loadFindings(org, p)).filter((f) => f.signal !== "vulnerability" && f.status !== "skipped").map((f) => f.versionKey));
   return rows.map((r) => ({ key: r.key, login: r.login, kind: r.kind, versions: r.versions, share: r.versions / total, weight: r.weight, flagged: (r.keys as string[]).some((k) => bad.has(k)) }));
+}
+
+// ───────────── maintainer teams: community detection and connected components ─────────────
+export async function teams(org: string, p: ProjectRef, limit = 6): Promise<TeamsView> {
+  const [[counts], rows, comps, findings] = await Promise.all([
+    read(org, Q("project_counts"), { scanId: p.scanId }),
+    read(org, Q("algo_teams"), { scanId: p.scanId, limit }),
+    read(org, Q("algo_components"), { scanId: p.scanId }),
+    loadFindings(org, p),
+  ]);
+  const total = Math.max(1, counts?.packages ?? 1);
+  const bad = new Set(findings.filter((f) => f.signal !== "vulnerability" && (f.status === "open" || f.status === "confirmed")).map((f) => f.versionKey));
+  const out: TeamView[] = rows.map((r) => {
+    const keys = r.versionKeys as string[];
+    return {
+      id: Number(r.communityId),
+      accounts: (r.logins as string[]).slice(0, 20),
+      accountKeys: (r.keys as string[]).slice(0, 20),
+      versions: r.versions,
+      share: r.versions / total,
+      weight: Number(r.weight),
+      flagged: keys.some((k) => bad.has(k)),
+      packages: [...new Set(keys.map((k) => short(k).replace(/@[^@]*$/, "")))].slice(0, 6),
+    };
+  });
+  return { teams: out, network: { accounts: comps[0]?.accounts ?? 0, totalAccounts: counts?.accounts ?? 0 } };
 }
 
 // ───────────── worm simulation ─────────────

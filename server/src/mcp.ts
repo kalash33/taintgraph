@@ -80,7 +80,7 @@ server.registerTool(
 );
 
 // The Analyst's own graph tools, exposed one-to-one.
-for (const name of ["explain_package", "trace_exposures", "fix_plan", "workspace_exposure", "scan_changes", "top_accounts", "simulate_worm", "mcp_servers", "chokepoints"]) {
+for (const name of ["explain_package", "trace_exposures", "fix_plan", "workspace_exposure", "scan_changes", "top_accounts", "maintainer_teams", "simulate_worm", "mcp_servers", "chokepoints"]) {
   const t = toolByName.get(name)!;
   const props = (t.spec.parameters as any).properties ?? {};
   const shape: Record<string, z.ZodTypeAny> = { projectId: z.string() };
