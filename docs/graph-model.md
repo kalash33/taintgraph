@@ -79,7 +79,7 @@ In a relational store each of these is a recursive join whose depth you don't kn
 
 ## Queries
 
-All 67 queries live in [`queries/`](../queries), one per file, loaded by name. Highlights:
+All 77 queries live in [`queries/`](../queries), one per file, loaded by name. Highlights:
 
 | Query | Technique |
 |---|---|

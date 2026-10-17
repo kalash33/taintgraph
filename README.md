@@ -214,7 +214,7 @@ flowchart LR
 memory: (:Finding) (:Investigation)-[:HAS_STEP]->(:Step) (:Rule)-[:LEARNED_FROM]->(:Finding) (:Task)
 ```
 
-All 67 Cypher queries are plain files in [`queries/`](queries). They use `shortestPath`, `allShortestPaths`, variable-length paths, `algo.pageRank`, `algo.betweenness`, `algo.labelPropagation` (community detection), `algo.WCC` (connected components), full-text search and `CALL {}` subqueries.
+All 77 Cypher queries are plain files in [`queries/`](queries). They use `shortestPath`, `allShortestPaths`, variable-length paths, `algo.pageRank`, `algo.betweenness`, `algo.labelPropagation` (community detection), `algo.WCC` (connected components), full-text search and `CALL {}` subqueries.
 
 ## Documentation
 
