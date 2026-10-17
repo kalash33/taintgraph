@@ -26,3 +26,8 @@ test("a workspace folder without its own lockfile uses the nearest one above it"
   assert.deepEqual(parentLockfiles(tree, "services/api/app"), ["services/api/uv.lock"]);
   assert.deepEqual(parentLockfiles(["README.md"], "web"), []);
 });
+
+test("test fixtures, playgrounds and samples come after real lockfiles", () => {
+  const tree = ["packages/vite/src/node/__tests__/fixtures/yarn.lock", "playground/app/package-lock.json", "packages/app/pnpm-lock.yaml"];
+  assert.equal(candidates(tree)[0], "packages/app/pnpm-lock.yaml");
+});

@@ -7,7 +7,7 @@ import { parseInput } from "./parsers.ts";
 const LOCKFILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lock", "uv.lock", "poetry.lock", "requirements.txt"];
 const MCP_CONFIGS = [".mcp.json", "claude_desktop_config.json", ".cursor/mcp.json", ".vscode/mcp.json"];
 const EXCLUDE = /(^|\/)(node_modules|vendor|\.yarn)\//;
-const LATER = /(^|\/)(fixtures?|__fixtures__|tests?|testdata|examples?|e2e|benchmarks?|docs?)\//i; // considered only after everything else
+const LATER = /(^|\/)(fixtures?|__fixtures__|__tests__|__mocks__|tests?|testdata|test-fixtures|examples?|samples?|playgrounds?|e2e|benchmarks?|docs?)\//i; // considered only after everything else
 const MAX = 25 * 1024 * 1024;
 
 export interface RepoFile {
@@ -118,7 +118,8 @@ export async function githubFile(url: string): Promise<RepoFile> {
     const content = await capped(res, `${p} in ${owner}/${repo}`);
     const filename = p.split("/").pop()!;
     try {
-      parseInput(filename, content); // e.g. a requirements.txt with no pinned versions: try the next file
+      const parsed = parseInput(filename, content); // e.g. a requirements.txt with no pinned versions: try the next file
+      if (!parsed.packages.size && !parsed.mcp.length) throw new Error("no registry packages");
     } catch {
       tried.push(p);
       continue;
