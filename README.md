@@ -18,6 +18,11 @@
 </p>
 
 <p align="center">
+  <b><a href="https://taintgraph.onrender.com">Live demo: taintgraph.onrender.com</a></b><br/>
+  <sub>Free hosting: the first visit after a quiet spell can take up to a minute to wake up.</sub>
+</p>
+
+<p align="center">
   <img src="docs/screenshots/overview.png" alt="A real VS Code extension's lockfile: compromised, with red routes from six malicious packages into the app" width="900" />
 </p>
 

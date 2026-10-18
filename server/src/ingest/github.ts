@@ -103,7 +103,7 @@ export async function githubFileViaRaw(url: string): Promise<RepoFile> {
   const dir = isFile ? "" : (path ?? "").replace(/\/$/, "");
   const list = isFile ? [path!] : [...LOCKFILES, ...MCP_CONFIGS].map((n) => (dir ? `${dir}/${n}` : n));
   try {
-    return await pickFrom(owner, repo, branch, list, []);
+    return await pickFrom(owner, repo, branch, list, null); // only names were tried, so nothing else is known to exist
   } catch (e: any) {
     if (e?.statusCode === 413) throw e;
     throw fail(
@@ -114,7 +114,7 @@ export async function githubFileViaRaw(url: string): Promise<RepoFile> {
 }
 
 /** Download candidates in order and return the first one that parses into registry packages. */
-async function pickFrom(owner: string, repo: string, branch: string, list: string[], others: string[]): Promise<RepoFile> {
+async function pickFrom(owner: string, repo: string, branch: string, list: string[], others: string[] | null): Promise<RepoFile> {
   const tried: string[] = [];
   let found = 0;
   for (const p of list) {
@@ -136,7 +136,7 @@ async function pickFrom(owner: string, repo: string, branch: string, list: strin
       continue;
     }
     const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
-    return { filename, content, name: dir ? `${owner}/${repo}/${dir}` : `${owner}/${repo}`, path: p, others: (others.length ? others : list).filter((x) => x !== p).slice(0, 10) };
+    return { filename, content, name: dir ? `${owner}/${repo}/${dir}` : `${owner}/${repo}`, path: p, others: (others ?? []).filter((x) => x !== p).slice(0, 10) };
   }
   if (!found) throw fail(`None of ${list.slice(0, 3).join(", ")} exists in ${owner}/${repo}.`, 404);
   throw fail(`Found ${tried.join(", ")} in ${owner}/${repo}, but none has pinned versions Taintgraph can read. Commit a lockfile, or pin requirements with ==.`);
