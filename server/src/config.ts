@@ -17,7 +17,7 @@ export const config = {
   falkordbUrl: process.env.FALKORDB_URL || "redis://localhost:6380",
   port: Number(process.env.PORT || 8787),
   defaultOrg: "demo",
-  concurrency: 24,
+  concurrency: Math.max(1, Number(process.env.TAINTGRAPH_CONCURRENCY) || 24),
   userAgent: "taintgraph-supply-chain/1.0 (graph hacks 2026)",
   trustProxy: process.env.TRUST_PROXY === "1",
 };

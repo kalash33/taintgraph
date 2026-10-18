@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
     "bench": "tsx scripts/benchmark.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "refresh-top": "tsx scripts/refresh-top.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

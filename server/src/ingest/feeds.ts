@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import pLimit from "p-limit";
 import { createHash } from "node:crypto";
 import { config } from "../config.ts";
@@ -162,19 +165,56 @@ export interface NpmHistory {
 }
 
 /** Release history for one package, slimmed before caching. Packuments over 15 MB (e.g. react's canaries) are skipped. */
+/** Read and parse a JSON body, giving up (null) past max bytes even when the server sends no content-length. */
+async function jsonCapped(res: Response, max: number): Promise<any | null> {
+  if (Number(res.headers.get("content-length") ?? 0) > max) {
+    await res.body?.cancel();
+    return null;
+  }
+  const reader = res.body!.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > max) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+// Full registry documents can be several MB each. Parse only a few at a time across all scans, so memory stays bounded
+// on small hosts (TAINTGRAPH_HEAVY_FETCHES; 8 by default).
+const heavy = pLimit(Math.max(1, Number(process.env.TAINTGRAPH_HEAVY_FETCHES) || 8));
+
 export async function npmHistory(name: string): Promise<NpmHistory | null> {
   const key = `tg:cache:history:${name}`;
   const r = await redis();
   const hit = await r.get(key);
   if (hit !== null) return JSON.parse(hit);
+  return heavy(() => npmHistoryFetch(name, key));
+}
+
+async function npmHistoryFetch(name: string, key: string): Promise<NpmHistory | null> {
+  const r = await redis();
   const res = await fetch(`https://registry.npmjs.org/${enc(name)}`, { headers: UA, signal: AbortSignal.timeout(30_000) });
-  if (res.status === 404 || Number(res.headers.get("content-length") ?? 0) > 15 * 1024 * 1024) {
+  if (res.status === 404) {
     await res.body?.cancel();
     await r.set(key, "null", { EX: HOUR });
     return null;
   }
   if (!res.ok) throw new Error(`${res.status} from npm for ${name}`);
-  const full: any = await res.json();
+  // Packages with thousands of releases (typescript, @types/node) have documents of hundreds of MB, often sent without a
+  // content-length. Skip their history rather than hold that in memory.
+  const full: any = await jsonCapped(res, 15 * 1024 * 1024);
+  if (!full) {
+    await r.set(key, "null", { EX: HOUR });
+    return null;
+  }
   const slim: NpmHistory = { time: full.time ?? {}, versions: {}, maintainers: (full.maintainers ?? []).map((m: any) => m.name) };
   for (const [v, d] of Object.entries<any>(full.versions ?? {})) {
     slim.versions[v] = { user: d._npmUser?.name, trusted: !!d._npmUser?.trustedPublisher, hooks: installHooks(d.scripts), attested: !!d.dist?.attestations };
@@ -200,13 +240,19 @@ export async function pypiProject(name: string): Promise<PypiProject | null> {
   const r = await redis();
   const hit = await r.get(key);
   if (hit !== null) return JSON.parse(hit);
+  return heavy(() => pypiProjectFetch(name, key));
+}
+
+async function pypiProjectFetch(name: string, key: string): Promise<PypiProject | null> {
+  const r = await redis();
   const res = await fetch(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, { headers: UA, signal: AbortSignal.timeout(30_000) });
   if (res.status === 404) {
     await r.set(key, "null", { EX: HOUR });
     return null;
   }
   if (!res.ok) throw new Error(`${res.status} from PyPI for ${name}`);
-  const full: any = await res.json();
+  const full: any = await jsonCapped(res, 15 * 1024 * 1024);
+  if (!full) return null;
   const releases: PypiProject["releases"] = {};
   for (const [v, files] of Object.entries<any[]>(full.releases ?? {})) {
     const times = files.map((f) => f.upload_time_iso_8601).filter(Boolean).sort();
@@ -282,37 +328,46 @@ export async function reach(eco: Ecosystem, names: string[]): Promise<Map<string
 const topMemo = new Map<Ecosystem, Promise<Map<string, number>>>();
 
 /** The 2,000 most-downloaded packages (name -> monthly downloads). Kept slim in Redis and in memory. */
+/**
+ * The 2,000 most downloaded packages per registry, for typosquat checks. Bundled in server/data (refresh with
+ * `pnpm refresh-top`): fetching it live means about 2 MB of metadata per 100 packages, which is slow and heavy on
+ * small hosts.
+ */
 export function topPackages(eco: Ecosystem): Promise<Map<string, number>> {
   if (!topMemo.has(eco)) {
-    const p = (async () => {
-      const r = await redis();
-      const key = `tg:cache:top:${eco}`;
-      const hit = await r.get(key);
-      if (hit) return new Map<string, number>(JSON.parse(hit));
-      const fresh = await fetchTopPackages(eco);
-      if (fresh.size) await r.set(key, JSON.stringify([...fresh]), { EX: 7 * 24 * HOUR });
-      return fresh;
-    })();
-    topMemo.set(eco, p);
-    p.then((m) => !m.size && topMemo.delete(eco)).catch(() => topMemo.delete(eco));
+    const file = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "data", eco === "PyPI" ? "top-pypi.json" : "top-npm.json");
+    let rows: [string, number][] = [];
+    try {
+      rows = JSON.parse(readFileSync(file, "utf8")).packages ?? [];
+    } catch (e: any) {
+      console.warn("[taintgraph] top-package list missing; typosquat checks are off:", e.message);
+    }
+    topMemo.set(eco, Promise.resolve(new Map(rows.map(([n, d]) => [normKey(eco, n), d]))));
   }
   return topMemo.get(eco)!;
 }
 
-async function fetchTopPackages(eco: Ecosystem): Promise<Map<string, number>> {
+export async function fetchTopPackages(eco: Ecosystem): Promise<Map<string, number>> {
+  // The top 2,000 packages by downloads. Pages of 1,000 are over 100 MB of metadata each, so fetch pages of 100
+  // (about 9 MB), three at a time, keep only name and downloads, and skip caching the raw pages.
   const out = new Map<string, number>();
-  for (const page of [1, 2]) {
-    try {
-      const rows = await cached<any[]>(
-        `https://packages.ecosyste.ms/api/v1/registries/${eco === "PyPI" ? "pypi.org" : "npmjs.org"}/packages?sort=downloads&order=desc&per_page=1000&page=${page}`,
-        { ttl: 7 * 24 * HOUR },
-      );
-      for (const p of rows ?? []) if (p.name && p.downloads) out.set(normKey(eco, p.name), p.downloads);
-    } catch (e: any) {
-      console.warn("[ecosyste.ms] top packages unavailable; typosquat check skipped:", e.message);
-      break;
-    }
-  }
+  const limit = pLimit(3);
+  const registry = eco === "PyPI" ? "pypi.org" : "npmjs.org";
+  let failed = 0;
+  await Promise.all(
+    Array.from({ length: 20 }, (_, i) => i + 1).map((page) =>
+      limit(async () => {
+        try {
+          const res = await fetch(`https://packages.ecosyste.ms/api/v1/registries/${registry}/packages?sort=downloads&order=desc&per_page=100&page=${page}`, { headers: UA, signal: AbortSignal.timeout(60_000) });
+          if (!res.ok) throw new Error(String(res.status));
+          const rows: any[] = (await jsonCapped(res, 40 * 1024 * 1024)) ?? [];
+          for (const p of rows) if (p?.name && p.downloads) out.set(normKey(eco, p.name), p.downloads);
+        } catch (e: any) {
+          if (!failed++) console.warn("[ecosyste.ms] some top-package pages are unavailable; typosquat checks use what loaded:", e.message);
+        }
+      }),
+    ),
+  );
   return out;
 }
 
