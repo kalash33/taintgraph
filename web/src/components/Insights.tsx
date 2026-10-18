@@ -3,7 +3,10 @@ import type { InsightsView } from "@api/types";
 import { api } from "../api";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+const scrollTo = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: "smooth" });
+};
 
 interface Card {
   value: string;
@@ -12,9 +15,10 @@ interface Card {
   technique: string;
   hot?: boolean;
   go?: string; // id of the section with the details
+  run?: () => void; // an action instead (the worm card runs the simulation)
 }
 
-function cards(d: InsightsView): Card[] {
+function cards(d: InsightsView, onSimulate: (login: string) => void): Card[] {
   return [
     {
       value: String(d.compromised),
@@ -31,7 +35,7 @@ function cards(d: InsightsView): Card[] {
       ? { value: pct(d.topAccount.share), label: `of the tree is publishable by ${d.topAccount.login}`, detail: `${d.topAccount.versions} versions${d.topAccount.flagged ? ", including a flagged one" : ""}`, technique: "PageRank", hot: d.topAccount.flagged, go: "accounts-h" }
       : { value: "–", label: "no maintainer data", technique: "PageRank" },
     d.worm
-      ? { value: pct(d.worm.poisonedShare), label: `poisoned if ${d.worm.start} is phished`, detail: `a worm takes over ${d.worm.accounts} accounts in ${d.worm.waves} waves`, technique: "multi-hop traversal", hot: d.worm.poisonedShare >= 0.25, go: "accounts-h" }
+      ? { value: pct(d.worm.poisonedShare), label: `poisoned if ${d.worm.start} is phished`, detail: `a worm takes over ${d.worm.accounts} accounts in ${d.worm.waves} waves. Click to watch it spread`, technique: "multi-hop traversal", hot: d.worm.poisonedShare >= 0.25, run: () => onSimulate(d.worm!.start) }
       : { value: "–", label: "worm simulation unavailable", technique: "multi-hop traversal" },
     d.topTeam
       ? { value: pct(d.topTeam.share), label: `publishable by one maintainer team`, detail: `${d.topTeam.accounts.join(", ")}${d.topTeam.size > 3 ? ` +${d.topTeam.size - 3}` : ""}`, technique: "community detection", hot: d.topTeam.flagged, go: "teams-h" }
@@ -40,7 +44,7 @@ function cards(d: InsightsView): Card[] {
   ];
 }
 
-export default function Insights({ projectId, scanId }: { projectId: string; scanId: string }) {
+export default function Insights({ projectId, scanId, onSimulate }: { projectId: string; scanId: string; onSimulate: (login: string) => void }) {
   const [d, setD] = useState<InsightsView | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -61,8 +65,8 @@ export default function Insights({ projectId, scanId }: { projectId: string; sca
       </div>
       <div className="insight-grid">
         {d
-          ? cards(d).map((c) => (
-              <button type="button" key={c.technique} className={`insight${c.hot ? " insight-hot" : ""}`} onClick={() => c.go && scrollTo(c.go)} disabled={!c.go}>
+          ? cards(d, onSimulate).map((c) => (
+              <button type="button" key={c.technique} className={`insight${c.hot ? " insight-hot" : ""}`} onClick={() => (c.run ? c.run() : c.go && scrollTo(c.go))} disabled={!c.go && !c.run}>
                 <span className="insight-tag">{c.technique}</span>
                 <span className="insight-value">{c.value}</span>
                 <span className="insight-label">{c.label}</span>

@@ -52,7 +52,7 @@ export default function Accounts({
 
   useEffect(() => {
     if (sim.status === "loading") {
-      simRef.current?.scrollIntoView({ block: "nearest" });
+      simRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
     }
   }, [sim.status]);
 

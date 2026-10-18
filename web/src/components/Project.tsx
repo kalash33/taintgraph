@@ -10,6 +10,7 @@ import FixPlan from "./FixPlan";
 import Changes from "./Changes";
 import Teams from "./Teams";
 import Insights from "./Insights";
+import SectionNav from "./SectionNav";
 import { ErrorState, Loading } from "./States";
 
 function ReportDialog({ id, open, onClose }: { id: string; open: boolean; onClose: () => void }) {
@@ -225,6 +226,19 @@ export default function Project({ id }: { id: string }) {
         </div>
       </header>
 
+      <SectionNav
+        items={[
+          { id: "verdict-h", label: "Summary" },
+          { id: "insights-h", label: "What the graph shows" },
+          { id: "graph-h", label: "Dependency graph" },
+          { id: "fix-h", label: "Fix" },
+          { id: "findings-h", label: "Findings" },
+          { id: "accounts-h", label: "Who can publish" },
+          { id: "teams-h", label: "Teams" },
+          ...(summary.mcpServers.length ? [{ id: "mcp-h", label: "MCP servers" }] : []),
+        ]}
+      />
+
       <section className={`verdict verdict-${v}`} aria-labelledby="verdict-h">
         <div className="verdict-main">
           <h2 id="verdict-h" className="verdict-word">
@@ -275,7 +289,7 @@ export default function Project({ id }: { id: string }) {
         </details>
       </section>
 
-      <Insights projectId={summary.id} scanId={summary.scanId} />
+      <Insights projectId={summary.id} scanId={summary.scanId} onSimulate={simulate} />
 
       <Changes projectId={summary.id} scanId={summary.scanId} />
 
@@ -303,6 +317,7 @@ export default function Project({ id }: { id: string }) {
           <h2 id="findings-h" tabIndex={-1}>
             Findings
           </h2>
+          <p className="muted small section-help">Each finding shows how that version reaches your app, the evidence, and what to do. Mark it as a real threat or not: Taintgraph remembers, and learns rules from your verdicts.</p>
           <Findings findings={summary.findings} projectName={summary.name} focusRequest={focusReq} onStatusChange={onStatusChange} />
         </section>
         <aside className="col-accounts" aria-labelledby="accounts-h">

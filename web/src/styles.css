@@ -2723,3 +2723,75 @@ tbody tr:last-child td {
 .insights-fix {
   margin-top: 14px;
 }
+
+/* Section bar on the project page: stays on screen, highlights where you are */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: 0 calc(-1 * var(--gutter)) 24px;
+  padding: 8px var(--gutter);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+.section-nav ol {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.section-nav ol::-webkit-scrollbar {
+  display: none;
+}
+.section-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 12px 5px 6px;
+  cursor: pointer;
+}
+.section-nav button:hover {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line);
+}
+.section-nav button.is-active {
+  color: var(--on-river);
+  background: var(--river);
+  border-color: var(--river);
+  font-weight: 600;
+}
+.section-nav button:focus-visible {
+  outline: 2px solid var(--river);
+  outline-offset: 2px;
+}
+.section-nav-n {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--river-soft);
+  color: var(--river-strong);
+}
+.section-nav button.is-active .section-nav-n {
+  background: var(--on-river);
+  color: var(--river-strong);
+}
+.section-help {
+  margin-top: -4px;
+  max-width: 70ch;
+}
