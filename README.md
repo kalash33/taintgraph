@@ -26,6 +26,11 @@
   <img src="docs/screenshots/overview.png" alt="A real VS Code extension's lockfile: compromised, with red routes from six malicious packages into the app" width="900" />
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/insights.png" alt="What the graph shows: 6 malicious versions, a 5-hop route, PageRank reach 20%, worm 67%, a maintainer team with 22%, 189 accounts in one network" width="900" />
+  <br/><sub>Every number on the dashboard is a FalkorDB query or graph algorithm, and its tag says which.</sub>
+</p>
+
 ---
 
 In September 2025, a phished maintainer pushed malware into `chalk`, `debug` and 16 other npm packages with billions of weekly downloads. A week later the Shai-Hulud worm began stealing npm tokens and republishing every package its victims maintained. In 2026, the same playbook hit TanStack and LiteLLM.
@@ -157,7 +162,7 @@ Open http://localhost:8787 and click **chalk and debug, September 2025**: a real
 docker compose up -d falkordb     # FalkorDB on 127.0.0.1:6380
 pnpm install
 pnpm build && pnpm start          # http://localhost:8787
-pnpm test                         # 79 tests: unit, integration, real incidents
+pnpm test                         # 80 tests: unit, integration, real incidents
 ```
 </details>
 
@@ -213,13 +218,43 @@ flowchart LR
 
 ### The graph
 
+```mermaid
+graph LR
+  Project -- DEPENDS_ON --> Version
+  Version -- "DEPENDS_ON {projects}" --> Version
+  Version -- OF --> Package
+  Version -- PRECEDES --> Version
+  Account -- MAINTAINS --> Package
+  Account -- PUBLISHED --> Version
+  Advisory -- "AFFECTS {explicit, fixed}" --> Version
+  Scan -- OF_PROJECT --> Project
+  Scan -- SAW --> Version
+  McpServer -- RUNS --> Version
+  Finding -- ABOUT --> Version
+  Investigation -- HAS_STEP --> Step
+  Investigation -- FOLLOWS --> Investigation
+  Rule -- LEARNED_FROM --> Finding
+  Task -- FOR_PROJECT --> Project
 ```
-(:Project)-[:DEPENDS_ON]->(:Version)-[:DEPENDS_ON {projects}]->(:Version)-[:OF]->(:Package)
-(:Account)-[:MAINTAINS]->(:Package)     (:Account)-[:PUBLISHED]->(:Version)
-(:Advisory)-[:AFFECTS {explicit, fixed}]->(:Version)     (:Version)-[:PRECEDES]->(:Version)
-(:Scan)-[:SAW]->(:Version)     (:McpServer)-[:RUNS]->(:Version)
-memory: (:Finding) (:Investigation)-[:HAS_STEP]->(:Step) (:Rule)-[:LEARNED_FROM]->(:Finding) (:Task)
-```
+
+The first ten edges are the supply chain. `Finding`, `Investigation`, `Step`, `Rule` and `Task` are the agents' memory and shared state, kept in the same graph next to the facts they're about. Every property and query: [docs/graph-model.md](docs/graph-model.md).
+
+### Where every decision comes from
+
+Nothing the agents conclude comes from the model's own knowledge. Each answer is a graph query or algorithm, and the UI shows which one:
+
+| Decision | How the graph makes it | Query |
+|---|---|---|
+| Is a malicious version installed? | `(:Advisory {kind:'malware'})-[:AFFECTS {explicit}]->(:Version)<-[:SAW]-(:Scan)` | [exposure_paths](queries/exposure_paths.cypher) |
+| How does it reach the app? | `shortestPath` from the project, only over edges this project declared | [exposure_paths](queries/exposure_paths.cypher), [version_routes](queries/version_routes.cypher) |
+| Was the release tampered with? | compare a version with the one it `PRECEDES`: publisher, install script, provenance | [release_facts](queries/release_facts.cypher) |
+| Who could poison the tree? | `algo.pageRank` over `DEPENDS_ON`, summed over what each account can publish | [algo_pagerank](queries/algo_pagerank.cypher), [accounts_reach](queries/accounts_reach.cypher) |
+| Which maintainers act as one team? | `algo.labelPropagation` over `Account-MAINTAINS-Package` | [algo_teams](queries/algo_teams.cypher) |
+| How far could a worm go? | repeated hops account → version → dependents → their maintainers; `algo.WCC` bounds it | [worm_wave](queries/worm_wave.cypher), [algo_components](queries/algo_components.cypher) |
+| What should we pin to? | fixed versions on `AFFECTS` edges, or the clean release that `PRECEDES` the bad one | [fix_candidates](queries/fix_candidates.cypher) |
+| Which other projects are hit? | every project whose latest `Scan` `SAW` the version, and who `MAINTAINS` it | [workspace_package](queries/workspace_package.cypher), [workspace_account](queries/workspace_account.cypher) |
+| Should memory skip this finding? | earlier human verdicts on the same `Version`, and active `Rule` nodes (never for malware) | [verdicts_prior](queries/verdicts_prior.cypher), [rules_active](queries/rules_active.cypher) |
+| Which agent works next? | an atomic claim on an open `Task` node | [task_claim](queries/task_claim.cypher) |
 
 All 77 Cypher queries are plain files in [`queries/`](queries). They use `shortestPath`, `allShortestPaths`, variable-length paths, `algo.pageRank`, `algo.betweenness`, `algo.labelPropagation` (community detection), `algo.WCC` (connected components), full-text search and `CALL {}` subqueries.
 

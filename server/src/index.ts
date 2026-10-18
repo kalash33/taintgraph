@@ -17,6 +17,7 @@ import { activateRule, memoryView, recordVerdict, type Verdict } from "./memory.
 import { seedWorkspace } from "./seed.ts";
 import { fixPlan } from "./fix.ts";
 import { scanChanges } from "./changes.ts";
+import { insights } from "./insights.ts";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 26 * 1024 * 1024, trustProxy: config.trustProxy });
 const bad = (msg: string, statusCode = 400) => Object.assign(new Error(msg), { statusCode });
@@ -114,6 +115,7 @@ app.get<{ Params: { id: string } }>("/api/projects/:id/graph", { preHandler: lim
   const o = org(req);
   return dependencyGraph(o, await getProject(o, req.params.id));
 });
+app.get<{ Params: { id: string } }>("/api/projects/:id/insights", { preHandler: limit("read") }, async (req) => insights(org(req), req.params.id));
 app.get<{ Params: { id: string } }>("/api/projects/:id/teams", { preHandler: limit("read") }, async (req) => {
   const o = org(req);
   return teams(o, await getProject(o, req.params.id));

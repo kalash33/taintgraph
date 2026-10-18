@@ -2628,3 +2628,98 @@ tbody tr:last-child td {
   padding-left: 10px;
   margin-top: 12px;
 }
+
+/* What the graph shows: one card per graph technique, 3 x 2 on wide screens */
+@media (min-width: 640px) {
+  .insight-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (min-width: 980px) {
+  .insight-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+.insights {
+  margin: -12px 0 36px;
+}
+.insights-head h2 {
+  margin-bottom: 2px;
+}
+.insight-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.insight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--river);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.insight:disabled {
+  cursor: default;
+}
+.insight:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(21, 40, 58, 0.08);
+}
+.insight:focus-visible {
+  outline: 2px solid var(--river);
+  outline-offset: 2px;
+}
+.insight-hot {
+  border-top-color: var(--taint);
+}
+.insight-hot .insight-value {
+  color: var(--taint);
+}
+.insight-tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--river-strong);
+  background: var(--river-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+}
+.insight-value {
+  font-family: var(--font-head);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.insight-label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.insight-detail {
+  color: var(--muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.insight-loading {
+  min-height: 132px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--river-soft) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: insight-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes insight-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .insight-loading { animation: none; }
+  .insight { transition: none; }
+}
+.insights-fix {
+  margin-top: 14px;
+}

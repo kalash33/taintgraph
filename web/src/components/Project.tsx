@@ -9,6 +9,7 @@ import Markdown from "./Markdown";
 import FixPlan from "./FixPlan";
 import Changes from "./Changes";
 import Teams from "./Teams";
+import Insights from "./Insights";
 import { ErrorState, Loading } from "./States";
 
 function ReportDialog({ id, open, onClose }: { id: string; open: boolean; onClose: () => void }) {
@@ -273,6 +274,8 @@ export default function Project({ id }: { id: string }) {
           </div>
         </details>
       </section>
+
+      <Insights projectId={summary.id} scanId={summary.scanId} />
 
       <Changes projectId={summary.id} scanId={summary.scanId} />
 

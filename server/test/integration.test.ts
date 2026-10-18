@@ -278,4 +278,15 @@ describe("graph, agents and memory", opts, () => {
     assert.deepEqual(d.changed, [{ name: "chalk", from: ["5.6.0"], to: ["5.6.1"] }]);
     assert.deepEqual(d.newlyFlagged.map((f) => `${f.name}@${f.version}`).sort(), ["chalk@5.6.1", "is@3.3.1"]);
   });
+
+  test("the dashboard insights come from the graph", async () => {
+    const { insights } = await import("../src/insights.ts");
+    const d = await insights(ORG, chalk);
+    assert.ok(d.compromised >= 5, String(d.compromised)); // an earlier test dismissed chalk in this project
+    assert.ok(d.deepest && d.deepest.hops >= 2);
+    assert.ok(d.topAccount && d.topAccount.share > 0);
+    assert.ok(d.worm && d.worm.poisonedShare > 0);
+    assert.ok(d.topTeam && d.network.accounts > 0);
+    assert.ok(d.fixes > 0 && d.incident);
+  });
 });

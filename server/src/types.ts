@@ -60,6 +60,21 @@ export interface AccountView {
   flagged: boolean; // maintains or published a flagged version
 }
 
+/** Headline results of each graph technique for one project (the dashboard strip). */
+export interface InsightsView {
+  versions: number;
+  edges: number;
+  accounts: number;
+  compromised: number; // distinct versions with an open compromise finding
+  deepest: { name: string; version: string; hops: number; via: string[] } | null; // longest route to a compromised version (shortestPath)
+  topAccount: { login: string; versions: number; share: number; flagged: boolean } | null; // PageRank-weighted reach
+  worm: { start: string; waves: number; poisonedShare: number; accounts: number } | null; // simulated from the top account
+  topTeam: { accounts: string[]; size: number; share: number; flagged: boolean } | null; // label propagation
+  network: { accounts: number; totalAccounts: number }; // WCC
+  fixes: number; // changes in the fix plan
+  incident: boolean; // compromised versions were installed
+}
+
 /** A maintainer team: a community of accounts that maintain the same packages (label propagation). */
 export interface TeamView {
   id: number;
@@ -268,6 +283,7 @@ GET  /api/projects                            -> ProjectListItem[]
 GET  /api/projects/:id                        -> ProjectSummary
 GET  /api/projects/:id/graph                  -> DependencyGraph
 GET  /api/projects/:id/accounts               -> AccountView[] (top 25)
+GET  /api/projects/:id/insights               -> InsightsView (one card per graph technique)
 GET  /api/projects/:id/teams                  -> TeamsView (community detection + connected components)
 POST /api/projects/:id/simulate { login, waves? }   -> WormResult
 POST /api/projects/:id/ask { question, followUp? }  -> text/event-stream of InvestigateEvent (followUp: an investigation id to continue)
