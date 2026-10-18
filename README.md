@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <b><a href="https://taintgraph.onrender.com">Live demo: taintgraph.onrender.com</a></b><br/>
+  <b><a href="https://taintgraph.onrender.com">Live demo: taintgraph.onrender.com</a></b> · <b><a href="https://youtu.be/gceutfBaLqg">Demo video (3 min)</a></b><br/>
   <sub>Free hosting: the first visit after a quiet spell can take up to a minute to wake up.</sub>
 </p>
 
