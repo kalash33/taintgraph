@@ -1,11 +1,11 @@
-# Render blueprint: one free web service running FalkorDB and Taintgraph together (Dockerfile.render).
+# Render blueprint: one free web service running FalkorDB and Taintgraph together (the Dockerfile, with FalkorDB embedded).
 # Data lives in the container, so a restart re-seeds the demo workspace from the samples.
 services:
   - type: web
     name: taintgraph
     runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile.render
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

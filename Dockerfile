@@ -1,4 +1,6 @@
-# Taintgraph: API, agents and the built web app in one image. FalkorDB runs beside it (docker-compose.yml).
+# Taintgraph: API, agents and the built web app. Runs two ways:
+#  - beside FalkorDB (docker-compose.yml sets FALKORDB_URL), or
+#  - on its own, with FalkorDB embedded on localhost (no FALKORDB_URL; e.g. Render's free plan).
 FROM node:24-slim AS build
 WORKDIR /app
 RUN corepack enable
@@ -9,11 +11,13 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-FROM node:24-slim
-WORKDIR /app
-ENV NODE_ENV=production PORT=8787
+FROM falkordb/falkordb:v4.22.1
+COPY --from=build /usr/local/bin/node /usr/local/bin/node
 COPY --from=build /app /app
-USER node
+COPY scripts/start.sh /usr/local/bin/taintgraph-start
+RUN chmod +x /usr/local/bin/taintgraph-start
+ENV NODE_ENV=production PORT=8787 TRUST_PROXY=1 BROWSER=0
 EXPOSE 8787
 WORKDIR /app/server
-CMD ["node", "--import", "tsx", "src/index.ts"]
+ENTRYPOINT []
+CMD ["taintgraph-start"]
