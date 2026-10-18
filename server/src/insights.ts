@@ -3,7 +3,22 @@ import { fixPlan } from "./fix.ts";
 import { COMPROMISE, type InsightsView } from "./types.ts";
 
 // The dashboard strip: the headline result of each graph technique for one project, in one request.
+// Worm simulation, community detection and the fix plan take seconds on a small host. The result only changes with a
+// new scan or a new verdict, so it is cached per scan and per set of finding statuses.
+const cache = new Map<string, Promise<InsightsView>>();
+
 export async function insights(org: string, projectId: string): Promise<InsightsView> {
+  const p = await getProject(org, projectId);
+  const statuses = (await loadFindings(org, p)).map((f) => f.id + f.status).join(",");
+  const key = `${org}|${p.id}|${p.scanId}|${statuses}`;
+  if (!cache.has(key)) {
+    if (cache.size > 200) cache.delete(cache.keys().next().value!);
+    cache.set(key, compute(org, projectId).catch((e) => (cache.delete(key), Promise.reject(e))));
+  }
+  return cache.get(key)!;
+}
+
+async function compute(org: string, projectId: string): Promise<InsightsView> {
   const p = await getProject(org, projectId);
   const [s, findings, top, t, plan] = await Promise.all([summary(org, projectId), loadFindings(org, p), accounts(org, p, 1), teams(org, p, 1), fixPlan(org, projectId)]);
   const bad = findings.filter((f) => COMPROMISE.includes(f.signal) && (f.status === "open" || f.status === "confirmed"));
