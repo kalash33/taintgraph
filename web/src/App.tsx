@@ -4,6 +4,7 @@ import Intake from "./components/Intake";
 import Project from "./components/Project";
 import Ask from "./components/Ask";
 import Memory from "./components/Memory";
+import HeaderStatus from "./components/HeaderStatus";
 
 export type Route =
   | { name: "intake" }
@@ -253,6 +254,7 @@ export default function App() {
               </a>
             </li>
           </ul>
+          <HeaderStatus />
           <ThemeToggle />
         </nav>
       </header>
@@ -273,7 +275,27 @@ export default function App() {
         )}
       </main>
       <footer className="site-footer">
-        <p>Data from OSV.dev, npm, PyPI, deps.dev and ecosyste.ms. Graph stored in FalkorDB.</p>
+        <div className="footer-inner">
+          <div>
+            <p className="footer-brand">Taintgraph</p>
+            <p>See how a supply-chain attack reaches your app, and who could poison it next.</p>
+            <p className="footer-small">Data from OSV.dev, npm, PyPI, deps.dev and ecosyste.ms. Graph stored in FalkorDB. Built for Graph Hacks 2026.</p>
+          </div>
+          <ul className="footer-links">
+            <li>
+              <a href="https://github.com/kalash33/taintgraph" target="_blank" rel="noreferrer">Source code</a>
+            </li>
+            <li>
+              <a href="https://github.com/kalash33/taintgraph/blob/main/docs/graph-model.md" target="_blank" rel="noreferrer">Graph model</a>
+            </li>
+            <li>
+              <a href="https://github.com/kalash33/taintgraph/blob/main/docs/agents.md" target="_blank" rel="noreferrer">How the agents work</a>
+            </li>
+            <li>
+              <a href="https://github.com/kalash33/taintgraph/blob/main/benchmark/RESULTS.md" target="_blank" rel="noreferrer">Benchmark: 19/19 real attacks</a>
+            </li>
+          </ul>
+        </div>
       </footer>
     </>
   );

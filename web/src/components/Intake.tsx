@@ -427,7 +427,7 @@ export default function Intake() {
               .sort((a, b) => b.scannedAt - a.scannedAt)
               .map((p) => (
                 <li key={p.id}>
-                  <a href={href.project(p.id)} className="project-row">
+                  <a href={href.project(p.id)} className={`project-row v-${p.verdict}`}>
                     <span className="project-name">{p.name}</span>
                     <span className="project-meta">
                       {p.source} · <time dateTime={isoTime(p.scannedAt)}>{formatWhen(p.scannedAt)}</time>
