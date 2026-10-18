@@ -11,7 +11,7 @@ import type { Ecosystem } from "../types.ts";
 const HOUR = 3600;
 const UA = { "user-agent": config.userAgent };
 
-async function cached<T>(url: string, o: { ttl: number; method?: string; body?: unknown; allow404?: boolean; fresh?: boolean }): Promise<T | null> {
+async function cached<T>(url: string, o: { ttl: number; method?: string; body?: unknown; allow404?: boolean; fresh?: boolean; attempts?: number; timeoutMs?: number }): Promise<T | null> {
   const body = o.body === undefined ? undefined : JSON.stringify(o.body);
   const key = "tg:cache:" + createHash("sha1").update(`${o.method ?? "GET"} ${url} ${body ?? ""}`).digest("hex");
   const r = await redis();
@@ -20,13 +20,14 @@ async function cached<T>(url: string, o: { ttl: number; method?: string; body?: 
     if (hit !== null) return JSON.parse(hit);
   }
   let last: any;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const attempts = o.attempts ?? 3;
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       const res = await fetch(url, {
         method: o.method ?? "GET",
         headers: { ...UA, accept: "application/json", ...(body ? { "content-type": "application/json" } : {}) },
         body,
-        signal: AbortSignal.timeout(25_000),
+        signal: AbortSignal.timeout(o.timeoutMs ?? 25_000),
       });
       if (res.status === 404 && o.allow404) {
         await r.set(key, "null", { EX: o.ttl });
@@ -43,7 +44,7 @@ async function cached<T>(url: string, o: { ttl: number; method?: string; body?: 
     } catch (e) {
       last = e;
     }
-    await new Promise((res) => setTimeout(res, 500 * 2 ** attempt));
+    if (attempt < attempts - 1) await new Promise((res) => setTimeout(res, 500 * 2 ** attempt));
   }
   throw last;
 }
@@ -308,18 +309,25 @@ const purl = (eco: Ecosystem, name: string) => (eco === "PyPI" ? `pkg:pypi/${nam
 const normKey = (eco: Ecosystem, n: string) => (eco === "PyPI" ? n.toLowerCase().replace(/[-_.]+/g, "-") : n);
 
 /** Names the index doesn't know get zeros (obscure); names from a chunk that failed are left out (unknown). */
+// ecosyste.ms only adds download counts (for typosquat checks). When it is slow or down, skip it for a while instead
+// of making every scan wait on it.
+let reachDownUntil = 0;
+
 export async function reach(eco: Ecosystem, names: string[]): Promise<Map<string, { dependents: number; downloads: number }>> {
   const out = new Map<string, { dependents: number; downloads: number }>();
+  if (Date.now() < reachDownUntil) return out;
   // Chunks of 100 names, four requests at a time (one at a time took about 5 s per chunk on large lockfiles).
   const chunks = Array.from({ length: Math.ceil(names.length / 100) }, (_, i) => names.slice(i * 100, i * 100 + 100));
   const limit = pLimit(4);
   await Promise.all(chunks.map((chunk) => limit(async () => {
     try {
-      const rows = await cached<any[]>("https://packages.ecosyste.ms/api/v1/packages/bulk_lookup", { method: "POST", ttl: 24 * HOUR, body: { purls: chunk.map((n) => purl(eco, n)) } });
+      if (Date.now() < reachDownUntil) return;
+      const rows = await cached<any[]>("https://packages.ecosyste.ms/api/v1/packages/bulk_lookup", { method: "POST", ttl: 24 * HOUR, body: { purls: chunk.map((n) => purl(eco, n)) }, attempts: 1, timeoutMs: 10_000 });
       for (const n of chunk) out.set(normKey(eco, n), { dependents: 0, downloads: 0 });
       for (const p of rows ?? []) out.set(normKey(eco, p.name), { dependents: p.dependent_packages_count ?? 0, downloads: p.downloads ?? 0 });
     } catch (e: any) {
-      console.warn(`[ecosyste.ms] reach lookup failed for ${chunk.length} names:`, e.message);
+      reachDownUntil = Date.now() + 5 * 60_000;
+      console.warn(`[ecosyste.ms] reach lookup failed for ${chunk.length} names (skipping it for 5 minutes):`, e.message);
     }
   })));
   return out;
