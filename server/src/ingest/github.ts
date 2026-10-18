@@ -86,6 +86,63 @@ async function json(url: string) {
 }
 
 export async function githubFile(url: string): Promise<RepoFile> {
+  try {
+    return await githubFileViaApi(url);
+  } catch (e: any) {
+    // Shared hosting IPs use up GitHub's anonymous API limit (60 an hour) quickly. raw.githubusercontent.com isn't
+    // part of that limit, so look for the standard file names at the root (or in the linked folder) directly.
+    if (e?.statusCode !== 429) throw e;
+    return githubFileViaRaw(url);
+  }
+}
+
+export async function githubFileViaRaw(url: string): Promise<RepoFile> {
+  const { owner, repo, ref, path } = parseRepoUrl(url);
+  const branch = ref ?? "HEAD"; // raw.githubusercontent.com resolves HEAD to the default branch
+  const isFile = !!path && (LOCKFILES.includes(path.split("/").pop()!) || MCP_CONFIGS.some((c) => path === c || path.endsWith(`/${c}`)));
+  const dir = isFile ? "" : (path ?? "").replace(/\/$/, "");
+  const list = isFile ? [path!] : [...LOCKFILES, ...MCP_CONFIGS].map((n) => (dir ? `${dir}/${n}` : n));
+  try {
+    return await pickFrom(owner, repo, branch, list, []);
+  } catch (e: any) {
+    if (e?.statusCode === 413) throw e;
+    throw fail(
+      `No lockfile or MCP config at ${dir ? `${owner}/${repo}/${dir}` : `the root of ${owner}/${repo}`}. GitHub's API limit was reached, so subfolders weren't searched: link to the folder instead, like https://github.com/${owner}/${repo}/tree/main/apps/web.`,
+      404,
+    );
+  }
+}
+
+/** Download candidates in order and return the first one that parses into registry packages. */
+async function pickFrom(owner: string, repo: string, branch: string, list: string[], others: string[]): Promise<RepoFile> {
+  const tried: string[] = [];
+  let found = 0;
+  for (const p of list) {
+    const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${p.split("/").map(encodeURIComponent).join("/")}`, {
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) {
+      await res.body?.cancel();
+      continue;
+    }
+    found++;
+    const content = await capped(res, `${p} in ${owner}/${repo}`);
+    const filename = p.split("/").pop()!;
+    try {
+      const parsed = parseInput(filename, content); // e.g. a requirements.txt with no pinned versions: try the next file
+      if (!parsed.packages.size && !parsed.mcp.length) throw new Error("no registry packages");
+    } catch {
+      tried.push(p);
+      continue;
+    }
+    const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+    return { filename, content, name: dir ? `${owner}/${repo}/${dir}` : `${owner}/${repo}`, path: p, others: (others.length ? others : list).filter((x) => x !== p).slice(0, 10) };
+  }
+  if (!found) throw fail(`None of ${list.slice(0, 3).join(", ")} exists in ${owner}/${repo}.`, 404);
+  throw fail(`Found ${tried.join(", ")} in ${owner}/${repo}, but none has pinned versions Taintgraph can read. Commit a lockfile, or pin requirements with ==.`);
+}
+
+async function githubFileViaApi(url: string): Promise<RepoFile> {
   const { owner, repo, ref } = parseRepoUrl(url);
   let { path } = parseRepoUrl(url);
   const meta = await json(`https://api.github.com/repos/${owner}/${repo}`);
@@ -109,23 +166,5 @@ export async function githubFile(url: string): Promise<RepoFile> {
   if (!list.length)
     throw fail(`No lockfile or MCP config in ${owner}/${repo}${path ? `/${path}` : ""}. Supported: ${LOCKFILES.join(", ")}, and MCP configs (${MCP_CONFIGS.join(", ")}).`);
 
-  const tried: string[] = [];
-  for (const p of list.slice(0, 6)) {
-    const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${p.split("/").map(encodeURIComponent).join("/")}`, {
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (!res.ok) continue;
-    const content = await capped(res, `${p} in ${owner}/${repo}`);
-    const filename = p.split("/").pop()!;
-    try {
-      const parsed = parseInput(filename, content); // e.g. a requirements.txt with no pinned versions: try the next file
-      if (!parsed.packages.size && !parsed.mcp.length) throw new Error("no registry packages");
-    } catch {
-      tried.push(p);
-      continue;
-    }
-    const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
-    return { filename, content, name: dir ? `${owner}/${repo}/${dir}` : `${owner}/${repo}`, path: p, others: list.filter((x) => x !== p).slice(0, 10) };
-  }
-  throw fail(`Found ${tried.length ? tried.join(", ") : list.slice(0, 3).join(", ")} in ${owner}/${repo}, but none has pinned versions Taintgraph can read. Commit a lockfile, or pin requirements with ==.`);
+  return pickFrom(owner, repo, branch, list.slice(0, 6), list);
 }
