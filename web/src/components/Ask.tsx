@@ -77,6 +77,55 @@ function Steps({ turn }: { turn: Turn }) {
   );
 }
 
+const TOOLKIT: [string, string][] = [
+  ["trace_exposures", "every malicious or vulnerable version, with its route into the app (shortestPath)"],
+  ["explain_package", "one package: routes, advisories, publishers, maintainers, install scripts"],
+  ["fix_plan", "safe versions, re-checked on OSV, as an overrides block plus incident steps"],
+  ["top_accounts", "the accounts that can publish the most of the tree (PageRank)"],
+  ["maintainer_teams", "maintainer teams (community detection) and the worm's ceiling (WCC)"],
+  ["simulate_worm", "wave-by-wave spread from one hijacked account"],
+  ["workspace_exposure", "every other project that installs a package, or that an account can reach"],
+  ["scan_changes", "what changed since the last scan, and which new versions are flagged"],
+  ["recall_memory", "earlier verdicts and investigations, read first on every question"],
+];
+
+/** Shown before the first question: which model answers, and the fixed graph tools it can call. */
+function AgentCard() {
+  const [agent, setAgent] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((h) => setAgent(h.agent ?? null))
+      .catch(() => setAgent(null));
+  }, []);
+  return (
+    <div className="agent-card">
+      <p className="agent-who">
+        <span className="agent-dot" aria-hidden="true" />
+        {agent && agent !== "built-in" ? (
+          <>
+            Answered by <strong>{agent}</strong>, through the tools below only
+          </>
+        ) : (
+          <>Answered by the built-in investigator, through the tools below</>
+        )}
+      </p>
+      <p className="muted small">
+        The agent never writes Cypher. It picks from fixed, read-only graph queries, every step shows up here with the query it ran, and its answer
+        is checked against what the graph returned.
+      </p>
+      <ul className="toolkit">
+        {TOOLKIT.map(([name, what]) => (
+          <li key={name}>
+            <code>{name}</code>
+            <span>{what}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function Ask({ id, investigationId }: { id: string; investigationId?: string }) {
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [summaryError, setSummaryError] = useState<unknown>(null);
@@ -338,7 +387,7 @@ export default function Ask({ id, investigationId }: { id: string; investigation
         <aside className="trace" aria-labelledby="trace-h">
           <h2 id="trace-h">How I got here</h2>
           {!current ? (
-            <p className="muted">Each step the agent takes shows up here, with the query it ran against the graph.</p>
+            <AgentCard />
           ) : (
             <>
               <p className="trace-q muted small">For: {current.question}</p>

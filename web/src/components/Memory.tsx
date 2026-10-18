@@ -148,6 +148,29 @@ export default function Memory() {
       ) : !mem ? (
         <Loading label="Loading memory" />
       ) : (
+        <>
+        <ul className="mem-stats" aria-label="Memory at a glance">
+          <li>
+            <strong>{mem.investigations.length}</strong>
+            <span>investigations</span>
+            <small>Investigation → Step nodes</small>
+          </li>
+          <li>
+            <strong>{mem.verdicts.length}</strong>
+            <span>human verdicts</span>
+            <small>on Finding nodes, recalled across projects</small>
+          </li>
+          <li>
+            <strong>{mem.rules.length}</strong>
+            <span>learned {mem.rules.length === 1 ? "rule" : "rules"}</span>
+            <small>Rule -[:LEARNED_FROM]-&gt; Finding</small>
+          </li>
+          <li>
+            <strong>{mem.tasks.filter((t) => t.status === "done").length}</strong>
+            <span>agent handoffs done</span>
+            <small>Task nodes: Scout → Analyst → Reporter</small>
+          </li>
+        </ul>
         <div className="memory-grid">
           <Sentinel onDone={load} />
           <section aria-labelledby="inv-h">
@@ -269,6 +292,7 @@ export default function Memory() {
             )}
           </section>
         </div>
+        </>
       )}
     </div>
   );

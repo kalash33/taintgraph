@@ -181,13 +181,49 @@ export default function Intake() {
   return (
     <div className="page intake">
       <section className="intake-hero" aria-labelledby="page-title">
-        <h1 id="page-title" tabIndex={-1}>
-          Find out how a compromise reaches your app.
-        </h1>
-        <p className="lede">
-          Give Taintgraph a lockfile or an AI tool's MCP config. It maps every package, who can publish it, and which
-          advisories touch it, then traces the exact route anything dangerous takes into your code.
-        </p>
+        <div>
+          <h1 id="page-title" tabIndex={-1}>
+            Find out how a compromise reaches your app.
+          </h1>
+          <p className="lede">
+            Give Taintgraph a lockfile, a GitHub repo or an AI tool's MCP config. It maps every package, who can publish it, and which
+            advisories touch it, then traces the exact route anything dangerous takes into your code.
+          </p>
+          <ul className="proof" aria-label="Results">
+            <li>
+              <strong>19 / 19</strong> real attacks caught
+            </li>
+            <li>
+              <strong>0</strong> false alarms on clean packages
+            </li>
+            <li>
+              <strong>14</strong> read-only graph tools
+            </li>
+          </ul>
+        </div>
+        <ol className="how" aria-label="How it works">
+          <li>
+            <span className="how-n">1</span>
+            <div>
+              <strong>Scan</strong>
+              <p>Every version, who maintains and published it, and every advisory, loaded into a FalkorDB graph.</p>
+            </div>
+          </li>
+          <li>
+            <span className="how-n">2</span>
+            <div>
+              <strong>Trace</strong>
+              <p>shortestPath routes to malware, PageRank and community detection for who could poison you, a worm simulation for how far.</p>
+            </div>
+          </li>
+          <li>
+            <span className="how-n">3</span>
+            <div>
+              <strong>Act and remember</strong>
+              <p>An agent answers from the graph and plans the fix; your verdicts teach it, and agents hand off work through the graph.</p>
+            </div>
+          </li>
+        </ol>
       </section>
 
       <div className="intake-grid">
