@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DependencyGraph, FindingStatus, ProjectSummary } from "@api/types";
-import { api, findingGroup, formatWhen, isoTime, prefersReducedMotion, toApiError, VERDICT_LABEL } from "../api";
+import { api, signalLabel, findingGroup, formatWhen, isoTime, prefersReducedMotion, toApiError, VERDICT_LABEL } from "../api";
 import { href } from "../App";
 import Graph from "./Graph";
 import Findings, { type FocusRequest } from "./Findings";
@@ -76,6 +76,36 @@ function ReportDialog({ id, open, onClose }: { id: string; open: boolean; onClos
       </div>
     </dialog>
   );
+}
+
+/** Scroll to a section heading, leaving room for the section bar. */
+function jump(id: string) {
+  const el = document.getElementById(id);
+  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: "smooth" });
+}
+
+/** One sentence: what is wrong and where it comes in, from the open findings. */
+function diagnosis(s: ProjectSummary): string {
+  const live = s.findings.filter((f) => f.status === "open" || f.status === "confirmed");
+  const bad = live.filter((f) => ["malware", "possible_malware", "removed"].includes(f.signal));
+  const short = (k: string) => k.replace(/^(npm|pypi)\//, "");
+  if (bad.length) {
+    const via = new Map<string, number>();
+    for (const f of bad) {
+      const entry = f.path.length > 2 ? short(f.path[1]) : "a direct dependency";
+      via.set(entry, (via.get(entry) ?? 0) + 1);
+    }
+    const [top, n] = [...via].sort((a, b) => b[1] - a[1])[0];
+    const versions = new Set(bad.map((f) => f.versionKey)).size;
+    return top === "a direct dependency"
+      ? `${versions} malicious ${versions === 1 ? "version is" : "versions are"} installed directly by this project. Remove or pin ${versions === 1 ? "it" : "them"}, then rotate the tokens on every machine that installed ${versions === 1 ? "it" : "them"}.`
+      : `Malware reaches this app through ${top}${n < bad.length ? ` and ${via.size - 1} more ${via.size - 1 === 1 ? "route" : "routes"}` : ""}: ${versions} malicious ${versions === 1 ? "version" : "versions"} in total. Pin the clean releases and rotate the tokens on every machine that installed them.`;
+  }
+  const odd = live.filter((f) => !["vulnerability"].includes(f.signal));
+  if (odd.length) return `No known malware, but ${odd.length} ${odd.length === 1 ? "finding needs" : "findings need"} review, such as ${odd[0].name}@${odd[0].version} (${signalLabel(odd[0].signal).toLowerCase()}). Check ${odd.length === 1 ? "it" : "them"} before the next install.`;
+  const vulns = live.filter((f) => f.signal === "vulnerability");
+  if (vulns.length) return `No malware or tampering. ${vulns.length} known ${vulns.length === 1 ? "vulnerability needs" : "vulnerabilities need"} upgrades, starting with ${vulns[0].name}@${vulns[0].version}.`;
+  return "Nothing malicious, tampered or vulnerable was found in this project's dependencies.";
 }
 
 export default function Project({ id }: { id: string }) {
@@ -261,6 +291,16 @@ export default function Project({ id }: { id: string }) {
             project.
           </p>
         </div>
+        <div className="verdict-side">
+          <p className="diagnosis">{diagnosis(summary)}</p>
+          <div className="verdict-actions-row">
+            <button type="button" className="btn" onClick={() => jump("graph-h")}>
+              See the route
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => jump("fix-h")}>
+              Fix it
+            </button>
+          </div>
         <details className="explain">
           <summary>What am I looking at?</summary>
           <div className="explain-body">
@@ -287,6 +327,7 @@ export default function Project({ id }: { id: string }) {
             </p>
           </div>
         </details>
+        </div>
       </section>
 
       <Insights projectId={summary.id} scanId={summary.scanId} onSimulate={simulate} />
