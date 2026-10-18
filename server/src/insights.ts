@@ -9,7 +9,7 @@ const cache = new Map<string, Promise<InsightsView>>();
 
 export async function insights(org: string, projectId: string): Promise<InsightsView> {
   const p = await getProject(org, projectId);
-  const statuses = (await loadFindings(org, p)).map((f) => f.id + f.status).join(",");
+  const statuses = (await loadFindings(org, p)).map((f) => f.id + f.status).sort().join(",");
   const key = `${org}|${p.id}|${p.scanId}|${statuses}`;
   if (!cache.has(key)) {
     if (cache.size > 200) cache.delete(cache.keys().next().value!);
