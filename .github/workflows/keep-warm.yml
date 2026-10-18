@@ -1,0 +1,15 @@
+name: Keep the demo awake
+# Render's free plan sleeps after 15 minutes without traffic; a ping every 10 minutes keeps the live demo ready.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: curl -fsS --max-time 90 https://taintgraph.onrender.com/api/health
